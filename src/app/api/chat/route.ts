@@ -51,6 +51,6 @@ export async function POST(req: NextRequest) {
     ).then(({ error }) => { if (error) console.error('[Lead]', error.message); });
   }
 
-  const stream = OpenAIStream(response);
+  const stream = OpenAIStream(response as any);
   return new StreamingTextResponse(stream);
 }
