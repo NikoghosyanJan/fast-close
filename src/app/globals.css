@@ -1,0 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 220 25% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 25% 10%;
+    --primary: 152 70% 38%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 15% 92%;
+    --secondary-foreground: 220 25% 20%;
+    --muted: 220 15% 94%;
+    --muted-foreground: 220 10% 50%;
+    --accent: 152 60% 92%;
+    --accent-foreground: 152 70% 25%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 15% 88%;
+    --input: 220 15% 88%;
+    --ring: 152 70% 38%;
+    --radius: 0.75rem;
+
+    /* Chat specific */
+    --chat-bg: 210 20% 93%;
+    --bubble-user: 152 70% 38%;
+    --bubble-user-fg: 0 0% 100%;
+    --bubble-ai: 0 0% 100%;
+    --bubble-ai-fg: 220 25% 10%;
+  }
+
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'DM Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Syne', sans-serif;
+  }
+}
+
+@layer components {
+  .chat-bubble {
+    @apply max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed;
+    word-break: break-word;
+  }
+
+  .chat-bubble-user {
+    @apply chat-bubble ml-auto rounded-br-sm;
+    background-color: hsl(var(--bubble-user));
+    color: hsl(var(--bubble-user-fg));
+  }
+
+  .chat-bubble-ai {
+    @apply chat-bubble rounded-bl-sm shadow-sm;
+    background-color: hsl(var(--bubble-ai));
+    color: hsl(var(--bubble-ai-fg));
+  }
+}
+
+/* Typing indicator dots */
+.typing-dot {
+  @apply w-2 h-2 rounded-full bg-muted-foreground;
+  animation: typing 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
