@@ -1,7 +1,8 @@
 import { createSupabaseServerClient, createAdminClient } from '@/lib/supabase';
 import { NextRequest } from 'next/server';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-app.vercel.app';
+// const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://fast-close.vercel.app'; TODO: fix
+const APP_URL = 'https://fast-close.vercel.app';
 
 async function setTelegramWebhook(token: string, businessId: string) {
   const webhookUrl = `${APP_URL}/api/telegram/webhook/${businessId}`;
