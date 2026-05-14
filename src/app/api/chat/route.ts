@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   const systemPrompt = buildSystemPrompt(business.name, contextText);
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gpt-4.1',
     stream: true,
     temperature: 0.4,
     max_tokens: 600,

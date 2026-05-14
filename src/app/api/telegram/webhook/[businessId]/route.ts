@@ -39,7 +39,7 @@ export async function POST(req: NextRequest, { params }: { params: { businessId:
 
   // Call GPT
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gpt-4.1',
     temperature: 0.4,
     max_tokens: 600,
     messages: [
