@@ -1,7 +1,6 @@
 import { getMyBusiness } from '@/lib/auth-actions';
 import { createSupabaseServerClient } from '@/lib/supabase';
 import { Users, Phone, Clock } from 'lucide-react';
-
 export default async function LeadsPage() {
   const business = await getMyBusiness();
   const supabase = createSupabaseServerClient();
@@ -9,6 +8,8 @@ export default async function LeadsPage() {
   const { data: leads } = business
     ? await supabase.from('leads').select('*').eq('business_id', business.id).order('created_at', { ascending: false })
     : { data: [] };
+
+  console.log(leads, 'leads');
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -43,9 +44,43 @@ export default async function LeadsPage() {
                   </div>
                 </div>
                 {lead.chat_summary && (
-                  <div className="ml-10 bg-muted rounded-lg px-3 py-2">
-                    <p className="text-xs text-muted-foreground font-medium mb-1">Chat summary</p>
-                    <pre className="text-xs text-foreground whitespace-pre-wrap font-sans leading-relaxed">{lead.chat_summary}</pre>
+                  <div className="ml-10 bg-muted rounded-lg px-4 py-3">
+                    <p className="text-xs text-muted-foreground font-medium mb-2">Chat summary</p>
+                    <div className="text-xs text-foreground space-y-1.5 font-sans leading-relaxed">
+                      {lead.chat_summary.split('\n').map((line: string, index: number) => {
+                        // Skip completely empty lines
+                        if (!line.trim()) return null;
+
+                        // Check if the line highlights a speaker role
+                        const isAssistant = line.startsWith('assistant:');
+                        const isUser = line.startsWith('user:');
+
+                        if (isAssistant || isUser) {
+                          const role = isAssistant ? 'assistant:' : 'user:';
+                          const content = line.substring(role.length);
+
+                          return (
+                            <div key={index} className="pt-0.5">
+              <span className={`font-bold capitalize ${isAssistant ? 'text-primary' : 'text-foreground'}`}>
+                {role}{' '}
+              </span>
+                              <span>{content.replace(/\*\*/g, '')}</span>
+                            </div>
+                          );
+                        }
+
+                        // Handle nested bulleted lists or sub-details nicely
+                        const isBullet = line.trim().startsWith('-');
+                        return (
+                          <div
+                            key={index}
+                            className={`text-muted-foreground ${isBullet ? 'pl-4 text-foreground/90' : 'pl-2'}`}
+                          >
+                            {line.replace(/\*\*/g, '')}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>

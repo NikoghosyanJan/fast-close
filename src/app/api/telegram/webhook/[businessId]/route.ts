@@ -1,7 +1,23 @@
 import { createAdminClient } from '@/lib/supabase';
-import { openai, buildSystemPrompt, extractPhoneNumber } from '@/lib/openai';
+import { openai, buildSystemPrompt } from '@/lib/openai';
 import { getRelevantContext } from '@/lib/rag';
 import { NextRequest } from 'next/server';
+
+// ── Fixed extractPhoneNumber (same fix as chat/route.ts) ──────
+// Old regex matched pure whitespace/punctuation — now requires
+// the match to start AND end with a digit.
+function extractPhoneNumber(text: string): string | null {
+  const phoneRegex = /\+?[\d][\d\s\-().]{5,}[\d]/g;
+  const matches = text.match(phoneRegex);
+  if (!matches) return null;
+  for (const match of matches) {
+    const digits = match.replace(/\D/g, '');
+    if (digits.length >= 7 && digits.length <= 15) {
+      return digits;
+    }
+  }
+  return null;
+}
 
 // In-memory store for Telegram conversation history (per chat_id)
 // For production, store this in Redis or Supabase
@@ -54,7 +70,7 @@ export async function POST(req: NextRequest, { params }: { params: { businessId:
   const systemPrompt = buildSystemPrompt(business.name, contextText, business.system_prompt);
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4.1',
+    model: 'gpt-4o-mini',
     temperature: 0.1,
     max_tokens: 1000,
     messages: [
@@ -67,7 +83,7 @@ export async function POST(req: NextRequest, { params }: { params: { businessId:
 
   // Save assistant reply to history
   history.push({ role: 'assistant', content: reply });
-  conversationHistory.set(chatId, history.slice(-20)); // keep last 20
+  conversationHistory.set(chatId, history.slice(-20));
 
   // Send reply — split if over Telegram's 4096 char limit
   const chunks = reply.match(/[\s\S]{1,4000}/g) ?? [reply];
@@ -79,16 +95,38 @@ export async function POST(req: NextRequest, { params }: { params: { businessId:
     });
   }
 
-  // Lead capture
-  const phone = extractPhoneNumber(userText);
+  // ── Fixed lead capture ────────────────────────────────────────
+  // Scan ALL user messages in history, not just the current one.
+  // A user might have sent their number 2-3 messages ago.
+  const allUserText = recentHistory
+    .filter((m) => m.role === 'user')
+    .map((m) => m.content)
+    .join(' ');
+
+  const phone = extractPhoneNumber(allUserText);
+
+  console.log('[Telegram Lead] scanning:', allUserText.slice(0, 200));
+  console.log('[Telegram Lead] extracted phone:', phone);
+
   if (phone) {
     const summary = recentHistory
-      .map(m => `${m.role}: ${m.content}`)
+      .map((m) => `${m.role}: ${m.content}`)
       .join('\n');
-    await admin.from('leads').upsert(
-      { business_id: businessId, client_phone: phone, chat_summary: `[Telegram]\n${summary}` },
+
+    const { error } = await admin.from('leads').upsert(
+      {
+        business_id: businessId,
+        client_phone: phone,
+        chat_summary: `[Telegram]\n${summary}`,
+      },
       { onConflict: 'business_id,client_phone' }
     );
+
+    if (error) {
+      console.error('[Telegram Lead] upsert failed:', error.message, error.details);
+    } else {
+      console.log('[Telegram Lead] saved successfully:', phone);
+    }
   }
 
   return Response.json({ ok: true });

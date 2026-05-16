@@ -78,11 +78,17 @@ ${context || 'The catalog is currently empty. Ask for the customer\'s phone numb
  * Detect phone number in text.
  */
 export function extractPhoneNumber(text: string): string | null {
-  const phoneRegex = /(\+?[\d\s\-().]{7,}(?:x\d+)?)/g;
+  // Must start with optional + then a digit, end with a digit.
+  // Allows spaces, dashes, dots, parentheses in between.
+  const phoneRegex = /\+?[\d][\d\s\-().]{5,}[\d]/g;
   const matches = text.match(phoneRegex);
   if (!matches) return null;
-  const cleaned = matches
-    .map((m) => m.replace(/\D/g, ''))
-    .find((m) => m.length >= 7 && m.length <= 15);
-  return cleaned ?? null;
+
+  for (const match of matches) {
+    const digits = match.replace(/\D/g, '');
+    if (digits.length >= 7 && digits.length <= 15) {
+      return digits; // return normalized digits-only string
+    }
+  }
+  return null;
 }

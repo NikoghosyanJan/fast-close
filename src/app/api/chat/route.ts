@@ -23,6 +23,42 @@ const CATALOG_INTENT_PATTERNS = [
 function isCatalogRequest(message: string): boolean {
   return CATALOG_INTENT_PATTERNS.some((p) => p.test(message));
 }
+async function saveLead(
+  supabase: ReturnType<typeof import('@/lib/supabase').createAdminClient>,
+  businessId: string,
+  messages: { role: string; content: string }[]
+) {
+  const allUserText = messages
+    .filter((m) => m.role === 'user')
+    .map((m) => m.content)
+    .join(' ');
+
+  const phone = extractPhoneNumber(allUserText);
+
+  // Debug: log what we're working with
+  console.log('[Lead] scanning text:', allUserText.slice(0, 200));
+  console.log('[Lead] extracted phone:', phone);
+
+  if (!phone) return;
+
+  const summary = messages
+    .slice(-4)
+    .map((m) => `${m.role}: ${m.content}`)
+    .join('\n');
+
+  const { error } = await supabase
+    .from('leads')
+    .upsert(
+      { business_id: businessId, client_phone: phone, chat_summary: summary },
+      { onConflict: 'business_id,client_phone' }
+    );
+
+  if (error) {
+    console.error('[Lead] upsert failed:', error.message, error.details);
+  } else {
+    console.log('[Lead] saved successfully for phone:', phone);
+  }
+}
 
 export async function POST(req: NextRequest) {
   const { messages, businessId } = await req.json();
@@ -56,7 +92,7 @@ export async function POST(req: NextRequest) {
   );
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4.1',
+    model: 'gpt-4o-mini',
     stream: true,
     temperature: 0.2,  // Low = factual, minimal hallucination
     max_tokens: 1024,
@@ -70,27 +106,8 @@ export async function POST(req: NextRequest) {
   });
 
   // Lead capture — scan all user messages for phone number (non-blocking)
-  const allUserText = messages
-    .filter((m: { role: string }) => m.role === 'user')
-    .map((m: { content: string }) => m.content)
-    .join(' ');
+  await saveLead(supabase, businessId, messages);
 
-  const phone = extractPhoneNumber(allUserText);
-  if (phone) {
-    const summary = messages
-      .slice(-8)
-      .map((m: { role: string; content: string }) => `${m.role}: ${m.content}`)
-      .join('\n');
-    supabase
-      .from('leads')
-      .upsert(
-        { business_id: businessId, client_phone: phone, chat_summary: summary },
-        { onConflict: 'business_id,client_phone' }
-      )
-      .then(({ error }) => {
-        if (error) console.error('[Lead]', error.message);
-      });
-  }
 
   const stream = OpenAIStream(response as any);
   return new StreamingTextResponse(stream);
