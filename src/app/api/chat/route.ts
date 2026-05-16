@@ -1,8 +1,28 @@
 import { openai, buildSystemPrompt, extractPhoneNumber } from '@/lib/openai';
-import { getRelevantContext } from '@/lib/rag';
+import { getRelevantContext, getAllProducts } from '@/lib/rag';
 import { createAdminClient } from '@/lib/supabase';
 import { NextRequest } from 'next/server';
 import { OpenAIStream, StreamingTextResponse } from 'ai';
+
+// Keywords that mean "show me everything you have"
+const CATALOG_INTENT_PATTERNS = [
+  /what (do you have|can you offer|products|items|services)/i,
+  /show (me|us) (everything|all|your products|your items)/i,
+  /list (your |all |the )?(products|items|services|catalog)/i,
+  /what('s| is) (available|in stock|on offer)/i,
+  /ի՞նչ ունե/i,          // Armenian: "what do you have"
+  /ի՞նչ կա/i,            // Armenian: "what is there"
+  /что у вас/i,           // Russian: "what do you have"
+  /что есть/i,            // Russian: "what is there"
+  /покажите все/i,        // Russian: "show everything"
+  /inchi uni/i,           // Armenian transliteration
+  /inchi ka/i,
+  /chto u vas/i,          // Russian transliteration
+];
+
+function isCatalogRequest(message: string): boolean {
+  return CATALOG_INTENT_PATTERNS.some((p) => p.test(message));
+}
 
 export async function POST(req: NextRequest) {
   const { messages, businessId } = await req.json();
@@ -18,17 +38,28 @@ export async function POST(req: NextRequest) {
 
   if (bizError || !business) return new Response('Business not found', { status: 404 });
 
-  const lastUserMessage = [...messages].reverse()
+  const lastUserMessage: string = [...messages]
+    .reverse()
     .find((m: { role: string; content: string }) => m.role === 'user')?.content ?? '';
 
-  const { contextText } = await getRelevantContext(lastUserMessage, businessId);
-  const systemPrompt = buildSystemPrompt(business.name, contextText);
+  // Smart retrieval: if user wants catalog → return all products
+  // Otherwise → vector similarity search with conversation context
+  const { contextText } =
+    isCatalogRequest(lastUserMessage)
+      ? await getAllProducts(businessId)
+      : await getRelevantContext(lastUserMessage, businessId, 8, messages);
+
+  const systemPrompt = buildSystemPrompt(
+    business.name,
+    contextText,
+    business.system_prompt
+  );
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4.1',
     stream: true,
-    temperature: 0.4,
-    max_tokens: 600,
+    temperature: 0.2,  // Low = factual, minimal hallucination
+    max_tokens: 1024,
     messages: [
       { role: 'system', content: systemPrompt },
       ...messages.map((m: { role: string; content: string }) => ({
@@ -38,17 +69,27 @@ export async function POST(req: NextRequest) {
     ],
   });
 
-  // Lead capture (non-blocking)
-  const allUserText = messages.filter((m: { role: string }) => m.role === 'user')
-    .map((m: { content: string }) => m.content).join(' ');
+  // Lead capture — scan all user messages for phone number (non-blocking)
+  const allUserText = messages
+    .filter((m: { role: string }) => m.role === 'user')
+    .map((m: { content: string }) => m.content)
+    .join(' ');
+
   const phone = extractPhoneNumber(allUserText);
   if (phone) {
-    const summary = messages.slice(-6)
-      .map((m: { role: string; content: string }) => `${m.role}: ${m.content}`).join('\n');
-    supabase.from('leads').upsert(
-      { business_id: businessId, client_phone: phone, chat_summary: summary },
-      { onConflict: 'business_id,client_phone' }
-    ).then(({ error }) => { if (error) console.error('[Lead]', error.message); });
+    const summary = messages
+      .slice(-8)
+      .map((m: { role: string; content: string }) => `${m.role}: ${m.content}`)
+      .join('\n');
+    supabase
+      .from('leads')
+      .upsert(
+        { business_id: businessId, client_phone: phone, chat_summary: summary },
+        { onConflict: 'business_id,client_phone' }
+      )
+      .then(({ error }) => {
+        if (error) console.error('[Lead]', error.message);
+      });
   }
 
   const stream = OpenAIStream(response as any);

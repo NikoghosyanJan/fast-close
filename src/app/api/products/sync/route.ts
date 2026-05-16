@@ -1,5 +1,5 @@
 import { createSupabaseServerClient, createAdminClient } from '@/lib/supabase';
-import { generateEmbedding } from '@/lib/openai';
+import { generateEmbedding, buildProductEmbeddingText } from '@/lib/openai';
 import { parseProductInput } from '@/lib/actions';
 import { NextRequest } from 'next/server';
 
@@ -8,7 +8,8 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { data: business } = await supabase.from('businesses').select('id').eq('user_id', user.id).single();
+  const { data: business } = await supabase
+    .from('businesses').select('id').eq('user_id', user.id).single();
   if (!business) return Response.json({ error: 'Business not found' }, { status: 404 });
 
   const { raw } = await req.json();
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
   const products = await parseProductInput(raw);
   const admin = createAdminClient();
 
-  // Clear existing
+  // Clear existing products
   await admin.from('products').delete().eq('business_id', business.id);
 
   let synced = 0;
@@ -25,7 +26,10 @@ export async function POST(req: NextRequest) {
 
   for (const product of products) {
     try {
-      const embedding = await generateEmbedding([product.name, product.description].filter(Boolean).join(' — '));
+      // Rich embedding: name + description + price + metadata
+      const embeddingText = buildProductEmbeddingText(product);
+      const embedding = await generateEmbedding(embeddingText);
+
       const { error } = await admin.from('products').insert({
         business_id: business.id,
         name: product.name,
@@ -34,6 +38,7 @@ export async function POST(req: NextRequest) {
         embedding,
         metadata: product.metadata ?? {},
       });
+
       if (error) errors.push(`${product.name}: ${error.message}`);
       else synced++;
     } catch (e) {

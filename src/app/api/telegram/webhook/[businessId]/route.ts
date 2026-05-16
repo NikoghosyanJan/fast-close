@@ -3,69 +3,90 @@ import { openai, buildSystemPrompt, extractPhoneNumber } from '@/lib/openai';
 import { getRelevantContext } from '@/lib/rag';
 import { NextRequest } from 'next/server';
 
-// Telegram sends updates to this webhook endpoint
+// In-memory store for Telegram conversation history (per chat_id)
+// For production, store this in Redis or Supabase
+const conversationHistory = new Map<number, { role: 'user' | 'assistant'; content: string }[]>();
+
 export async function POST(req: NextRequest, { params }: { params: { businessId: string } }) {
   const { businessId } = params;
   const body = await req.json();
 
-  // Only handle text messages
   const message = body?.message;
   if (!message?.text) return Response.json({ ok: true });
 
-  const chatId = message.chat.id;
+  const chatId: number = message.chat.id;
   const userText: string = message.text;
 
   const admin = createAdminClient();
 
-  // Get business + bot token
-  const { data: business } = await admin.from('businesses').select('id, name, system_prompt').eq('id', businessId).single();
+  const { data: business } = await admin
+    .from('businesses')
+    .select('id, name, system_prompt')
+    .eq('id', businessId)
+    .single();
   if (!business) return Response.json({ ok: true });
 
-  const { data: botRow } = await admin.from('telegram_bots').select('bot_token').eq('business_id', businessId).single();
+  const { data: botRow } = await admin
+    .from('telegram_bots')
+    .select('bot_token')
+    .eq('business_id', businessId)
+    .single();
   if (!botRow) return Response.json({ ok: true });
 
   const token = botRow.bot_token;
 
-  // Send "typing..." action
+  // Send typing indicator
   await fetch(`https://api.telegram.org/bot${token}/sendChatAction`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: chatId, action: 'typing' }),
   });
 
-  // RAG context
-  const { contextText } = await getRelevantContext(userText, businessId);
-  const systemPrompt = buildSystemPrompt(business.name, contextText);
+  // Build conversation history for this chat
+  const history = conversationHistory.get(chatId) ?? [];
+  history.push({ role: 'user', content: userText });
 
-  // Call GPT
+  // Keep last 10 messages to avoid token overflow
+  const recentHistory = history.slice(-10);
+
+  // RAG on the latest user message
+  const { contextText } = await getRelevantContext(userText, businessId);
+  const systemPrompt = buildSystemPrompt(business.name, contextText, business.system_prompt);
+
   const completion = await openai.chat.completions.create({
     model: 'gpt-4.1',
-    temperature: 0.4,
-    max_tokens: 600,
+    temperature: 0.1,
+    max_tokens: 1000,
     messages: [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: userText },
+      ...recentHistory,
     ],
   });
 
   const reply = completion.choices[0].message.content ?? "Sorry, I couldn't process that.";
 
-  // Send reply to Telegram
-  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text: reply, parse_mode: 'Markdown' }),
-  });
+  // Save assistant reply to history
+  history.push({ role: 'assistant', content: reply });
+  conversationHistory.set(chatId, history.slice(-20)); // keep last 20
 
-  // Lead capture — check for phone number
+  // Send reply — split if over Telegram's 4096 char limit
+  const chunks = reply.match(/[\s\S]{1,4000}/g) ?? [reply];
+  for (const chunk of chunks) {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: chunk, parse_mode: 'Markdown' }),
+    });
+  }
+
+  // Lead capture
   const phone = extractPhoneNumber(userText);
   if (phone) {
+    const summary = recentHistory
+      .map(m => `${m.role}: ${m.content}`)
+      .join('\n');
     await admin.from('leads').upsert(
-      {
-        business_id: businessId,
-        client_phone: phone,
-        chat_summary: `[Telegram] user: ${userText}\nassistant: ${reply}`,
-      },
+      { business_id: businessId, client_phone: phone, chat_summary: `[Telegram]\n${summary}` },
       { onConflict: 'business_id,client_phone' }
     );
   }
