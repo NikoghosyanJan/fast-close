@@ -1,12 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 
-// Prevent multiple instances in development (hot reload)
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    '❌ DATABASE_URL is not set. Make sure your .env.local file exists and contains DATABASE_URL.'
-  );
+// 💡 Вместо краша сборки просто выводим предупреждение в консоль, если переменной нет во время билда
+if (!process.env.DATABASE_URL && process.env.NODE_ENV !== 'production') {
+  console.warn('⚠️ DATABASE_URL is not set. Database operations will fail at runtime.');
 }
 
 export const prisma =
