@@ -2,6 +2,8 @@ import { prisma } from '@/lib/prisma';
 import ChatInterface from '@/components/chat/ChatInterface';
 import { notFound } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 interface Props { params: { businessId: string } }
 
 export async function generateMetadata({ params }: Props) {

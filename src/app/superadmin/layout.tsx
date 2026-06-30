@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Zap, Building2, LogOut, LayoutDashboard } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function SuperadminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user?.id) redirect('/auth/login');

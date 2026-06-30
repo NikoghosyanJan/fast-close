@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Zap, LayoutDashboard, Package, Users, Send, LogOut, ExternalLink, Settings, ShoppingBag } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user?.id) redirect('/auth/login');
