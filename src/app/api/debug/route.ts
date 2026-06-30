@@ -1,5 +1,6 @@
 import { getMenuContext, getRelevantContext, findProductByName, getProductCount } from '@/lib/rag';
 import { NextRequest } from 'next/server';
+export const dynamic = 'force-dynamic';
 
 /** Dev-only RAG trace — inspect retrieval without Supabase. */
 export async function GET(req: NextRequest) {
