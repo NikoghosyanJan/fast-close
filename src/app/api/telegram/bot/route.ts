@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
+export const dynamic = 'force-dynamic';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-app.vercel.app';
 

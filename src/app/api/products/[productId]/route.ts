@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { generateEmbedding, buildProductEmbeddingText } from '@/lib/openai';
 import { normalizeAliases, normalizeCategory } from '@/lib/products';
 import { NextRequest } from 'next/server';
+export const dynamic = 'force-dynamic';
 
 async function getBusiness(userId: string) {
   return prisma.business.findUnique({ where: { userId }, select: { id: true } });

@@ -4,6 +4,7 @@ import { generateEmbedding, buildProductEmbeddingText } from '@/lib/openai';
 import { parseProductInput } from '@/lib/actions';
 import { normalizeAliases, normalizeCategory } from '@/lib/products';
 import { NextRequest } from 'next/server';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   const session = await auth();
