@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Send, CheckCircle2, AlertCircle, Loader2, Trash2, ExternalLink } from 'lucide-react';
+export const dynamic = 'force-dynamic';
 
 interface TelegramBot {
   id: string;

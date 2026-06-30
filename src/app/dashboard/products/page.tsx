@@ -4,6 +4,7 @@ import { useState, useEffect, useTransition } from 'react';
 import { toast } from 'sonner';
 import { Plus, Trash2, RefreshCw, Upload, Pencil, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+export const dynamic = 'force-dynamic';
 
 interface Product {
   id: string;

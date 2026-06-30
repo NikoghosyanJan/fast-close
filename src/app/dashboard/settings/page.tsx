@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Save, Loader2, Zap, Info } from 'lucide-react';
+export const dynamic = 'force-dynamic';
 
 interface BusinessSettings {
   id: string;

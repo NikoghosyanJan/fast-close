@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ShoppingBag, Phone, MapPin, Clock, ChevronDown, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+export const dynamic = 'force-dynamic';
 
 interface OrderItem { name: string; quantity: number; price: number; }
 interface Order {

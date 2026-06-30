@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Package, Users, Send, ArrowRight, MessageSquare, ShoppingBag } from 'lucide-react';
+export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
   const session = await auth();

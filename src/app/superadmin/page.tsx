@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { Building2, Users, Phone, Package } from 'lucide-react';
+export const dynamic = 'force-dynamic';
 
 export default async function SuperadminPage() {
   const [businesses, leads, users] = await Promise.all([
