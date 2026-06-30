@@ -9,7 +9,7 @@ import {
 import { NextRequest } from 'next/server';
 import { StreamingTextResponse } from 'ai';
 import { randomUUID } from 'crypto';
-
+export const dynamic = 'force-dynamic';
 type StreamTurnResult = AgentStreamTurnCompleted;
 
 async function runPostTurnSideEffects(
