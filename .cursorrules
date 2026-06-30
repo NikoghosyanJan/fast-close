@@ -1,0 +1,54 @@
+# Cursor Rules — FastClose AI
+
+These rules guide AI-assisted edits in this codebase. Read `PROJECT_CONTEXT.md` first for full context.
+
+## Before making changes
+
+- This is a multi-tenant SaaS. Every query touching `Product`, `Order`, `Lead`, or `TelegramBot` MUST be scoped by `businessId`. Never write a query that could leak one restaurant's data to another.
+- Don't modify `prisma/schema.prisma` without also writing the matching hand-written SQL migration in `prisma/migrations/00X_name/migration.sql`. `prisma db push` is NOT used in this project — see ADR-1 and the migrations note in PROJECT_CONTEXT.md.
+- Don't reintroduce `@prisma/adapter-neon`, `@neondatabase/serverless`, or `ws` as dependencies. This was tried and broke `DATABASE_URL` resolution in Server Actions. Standard `PrismaClient` + Neon's pooled/direct connection string works correctly.
+
+## Code style
+
+- TypeScript strict, no `any` unless interfacing with Prisma's raw query results (which are weakly typed by design — cast explicitly with a documented reason).
+- Tailwind only, using the CSS variable tokens in `globals.css` (`bg-card`, `text-foreground`, `bg-primary`, `border-border`, etc.) — never hardcode hex colors or `bg-white`/`text-black`.
+- Prose-first formatting in any chat-facing or dashboard-facing text. No markdown tables in AI responses (the chat widget renders plain text + basic bold).
+- Keep all AI prompt construction in `src/lib/openai.ts`. Keep all retrieval logic in `src/lib/rag.ts`. Don't inline prompt strings in route handlers.
+
+## When working on the RAG / hallucination bug
+
+This is the current priority bug (full details in PROJECT_CONTEXT.md → Known Issues). When debugging:
+
+1. Reproduce with a real Armenian product name query (e.g. ask about an item that's confirmed to exist in the test business's menu).
+2. Capture full terminal output — every `[RAG]` console.log line — for that single request.
+3. Trace the value of `retrievalQuery`, `englishQuery`, raw `rows` from hybrid search, raw results from `findProductByName`, and the final `reranked` array. Find exactly which step drops the correct product.
+4. Do not add more regex patterns or prompt instructions as a first response — the bug is very likely a data/retrieval issue (Postgres query, language detection, or reranker), not a prompt-wording issue. Three rounds of prompt tightening have already failed to fix it.
+5. Suggested first move: query the `products` table directly in Prisma Studio (`npm run db:studio`) and confirm the exact stored `name` value for the test product (copy-paste it, check for invisible characters, whitespace, or encoding issues) before touching any application code.
+
+## When adding new AI/LLM calls
+
+- Always set `temperature` explicitly. Use `0` or `0.1` for extraction/classification tasks (translation, order extraction, reranking), `0.2`–`0.3` for conversational chat. Never leave it at the SDK default.
+- Always set `max_tokens` explicitly to a sane bound.
+- Log a `console.log('[ModuleName] ...')` at each meaningful step of any new AI pipeline — this codebase relies on these logs for debugging, not a tracing tool.
+- Every new OpenAI call should be justified by a comment explaining why it's a separate call rather than folded into an existing one (cost awareness — this product runs many small LLM calls per message, and the team is cost-conscious).
+
+## When touching the order flow
+
+- The `[ORDER_CONFIRMED]` tag convention (literal string appended by the LLM, detected server-side) is intentional — don't replace it with function calling / tool use without discussing tradeoffs, it was a deliberate simplicity choice.
+- Order extraction (`extractOrderFromConversation`) is a second, separate, non-streaming GPT call. Don't try to extract structured order data from the streaming response directly — streaming text is unreliable for structured parsing mid-stream.
+- Telegram order notifications require `TelegramBot.ownerChatId` to be set, which only happens after the restaurant owner sends at least one message to their own bot. This is a manual onboarding step users can forget — if working on onboarding UX, consider surfacing this requirement more clearly in `/dashboard/telegram`.
+
+## Testing changes locally
+
+There is no automated test suite yet. Manual testing checklist after RAG/prompt changes:
+1. Ask for the full menu (should trigger `getAllProducts`, not hallucinate)
+2. Ask about a specific real item by exact name, in Armenian script
+3. Ask about a specific real item using Latin transliteration
+4. Ask about a category that has zero matching items (should say "we don't have that" honestly, listing only real alternatives)
+5. Place a full order through to confirmation, verify it appears in `/dashboard/orders` and (if Telegram is connected) the owner receives a notification
+
+## Don't
+
+- Don't add Supabase back. This project was fully migrated off Supabase to Neon + Prisma + NextAuth (see PROJECT_CONTEXT.md history) — any code suggesting `@supabase/*` imports is stale/wrong.
+- Don't suggest chunking the product catalog (e.g. splitting long descriptions into multiple embedding chunks). Products are short records; one embedding per product is correct. This was already discussed and decided against.
+- Don't remove the language detection / translation step to "simplify" the pipeline — multilingual support (Armenian/Russian/English, including transliteration) is a core product requirement, not a nice-to-have.

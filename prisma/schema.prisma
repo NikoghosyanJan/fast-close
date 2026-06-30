@@ -1,0 +1,140 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(BUSINESS)
+  createdAt DateTime @default(now()) @map("created_at")
+  business  Business?
+
+  @@map("users")
+}
+
+enum Role {
+  BUSINESS
+  SUPERADMIN
+}
+
+model Business {
+  id           String       @id @default(cuid())
+  userId       String       @unique @map("user_id")
+  name         String
+  systemPrompt String?      @map("system_prompt")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products     Product[]
+  leads        Lead[]
+  orders       Order[]
+  telegramBot  TelegramBot?
+  chatSessions ChatSession[]
+
+  @@map("businesses")
+}
+
+model Product {
+  id          String                       @id @default(cuid())
+  businessId  String                       @map("business_id")
+  name        String
+  description String?
+  category    String?
+  aliases     String[]                     @default([])
+  price       Decimal?                     @db.Decimal(10, 2)
+  embedding   Unsupported("vector(1536)")?
+  metadata    Json                         @default("{}")
+  createdAt   DateTime                     @default(now()) @map("created_at")
+  business    Business                     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, category])
+  @@map("products")
+}
+
+model Lead {
+  id          String   @id @default(cuid())
+  businessId  String   @map("business_id")
+  clientPhone String   @map("client_phone")
+  chatSummary String?  @map("chat_summary")
+  createdAt   DateTime @default(now()) @map("created_at")
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, clientPhone])
+  @@map("leads")
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  businessId      String      @map("business_id")
+  customerPhone   String      @map("customer_phone")
+  deliveryAddress String      @map("delivery_address")
+  items           Json
+  totalPrice      Decimal     @map("total_price") @db.Decimal(10, 2)
+  status          OrderStatus @default(NEW)
+  notes           String?
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+  business        Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("orders")
+}
+
+enum OrderStatus {
+  NEW
+  CONFIRMED
+  PREPARING
+  DELIVERED
+  CANCELLED
+}
+
+model TelegramBot {
+  id          String   @id @default(cuid())
+  businessId  String   @unique @map("business_id")
+  botToken    String   @map("bot_token")
+  botUsername String?  @map("bot_username")
+  webhookSet  Boolean  @default(false) @map("webhook_set")
+  ownerChatId String?  @map("owner_chat_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("telegram_bots")
+}
+
+enum SessionChannel {
+  WEB
+  TELEGRAM
+}
+
+enum ConversationPhase {
+  GREETING
+  BROWSING
+  ORDERING
+  CHECKOUT
+  CONFIRMED
+}
+
+model ChatSession {
+  id              String            @id @default(cuid())
+  businessId      String            @map("business_id")
+  channel         SessionChannel
+  externalKey     String            @map("external_key")
+  phase           ConversationPhase @default(BROWSING)
+  cart            Json              @default("[]")
+  customerPhone   String?           @map("customer_phone")
+  deliveryAddress String?           @map("delivery_address")
+  messages        Json              @default("[]")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  business        Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, channel, externalKey])
+  @@index([businessId])
+  @@map("chat_sessions")
+}
