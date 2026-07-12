@@ -10,7 +10,7 @@ const PAIN_STATS = [
 const BENEFITS = [
   { icon: Clock, title: 'Works 24/7 — while you sleep', desc: 'Your AI agent never takes a day off. Customers in different time zones get instant answers at 3am, on weekends, on holidays.' },
   { icon: DollarSign, title: 'Cut support costs by 60%', desc: 'One AI agent handles hundreds of conversations simultaneously. No salary, no sick days, no training costs. Pay a flat monthly fee.' },
-  { icon: TrendingUp, title: 'Never lose a hot lead again', desc: 'When a customer is ready to buy at midnight, your agent is there to close. Every interested visitor gets captured as a lead.' },
+  { icon: TrendingUp, title: 'Never miss an order again', desc: 'When a guest is ready to order at midnight, your agent is there to take it. Every conversation can become a confirmed order.' },
   { icon: Shield, title: 'Trained on your exact catalog', desc: 'Unlike generic chatbots, FastClose learns your products, prices, and policies. It only says what you tell it to say.' },
 ];
 
@@ -18,7 +18,7 @@ const HOW_IT_WORKS = [
   { step: '01', title: 'Upload your catalog', desc: 'Paste your products, services, or FAQ as JSON or plain text. Takes 2 minutes.' },
   { step: '02', title: 'AI learns your business', desc: 'We generate semantic embeddings of every product so your agent understands context, not just keywords.' },
   { step: '03', title: 'Deploy everywhere', desc: 'Embed the chat widget on your website and connect a Telegram bot. One setup, two channels.' },
-  { step: '04', title: 'Watch leads come in', desc: 'Every captured phone number appears in your dashboard. Wake up to a list of warm leads.' },
+  { step: '04', title: 'Watch orders come in', desc: 'Confirmed orders appear in your dashboard (and Telegram). Wake up to a list of new orders ready to fulfill.' },
 ];
 
 const PLANS = [
@@ -27,7 +27,7 @@ const PLANS = [
     price: '$29',
     period: '/mo',
     desc: 'Perfect for small businesses just getting started.',
-    features: ['1 AI agent', 'Up to 500 conversations/mo', 'Web chat widget', 'Lead capture', 'Email support'],
+    features: ['1 AI agent', 'Up to 500 conversations/mo', 'Web chat widget', 'Order dashboard', 'Email support'],
     cta: 'Start free trial',
     highlight: false,
   },
@@ -36,7 +36,7 @@ const PLANS = [
     price: '$79',
     period: '/mo',
     desc: 'For growing businesses that want more reach.',
-    features: ['1 AI agent', 'Unlimited conversations', 'Web chat + Telegram bot', 'Lead capture & dashboard', 'Multilingual (10+ languages)', 'Priority support'],
+    features: ['1 AI agent', 'Unlimited conversations', 'Web chat + Telegram bot', 'Orders & table QR', 'Multilingual (10+ languages)', 'Priority support'],
     cta: 'Start free trial',
     highlight: true,
     badge: 'Most popular',
@@ -53,7 +53,7 @@ const PLANS = [
 ];
 
 const TESTIMONIALS = [
-  { name: 'Arman K.', role: 'Owner, Elektronika Store', quote: 'We used to miss 30+ customer inquiries every night. Now our AI handles everything and we wake up to 10-15 qualified leads daily.' },
+  { name: 'Arman K.', role: 'Owner, Elektronika Store', quote: 'We used to miss 30+ customer inquiries every night. Now our AI handles everything and we wake up to confirmed orders ready to fulfill.' },
   { name: 'Narine M.', role: 'CEO, Narine Beauty', quote: 'Our customers write in Armenian, Russian, and English. FastClose answers perfectly in all three. Our response time went from 6 hours to 0.' },
   { name: 'David P.', role: 'Founder, TechGear AM', quote: 'ROI in the first week. The cost of one month subscription is less than 2 hours of a support agent. It just works.' },
 ];
@@ -104,7 +104,7 @@ export default function HomePage() {
           </h1>
 
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            FastClose AI answers customer questions, captures leads, and closes sales — in any language, on your website and Telegram, <span className="text-foreground font-medium">24 hours a day</span>.
+            FastClose AI answers customer questions, takes orders, and notifies your kitchen — in any language, on your website, table QR, and Telegram, <span className="text-foreground font-medium">24 hours a day</span>.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -148,7 +148,7 @@ export default function HomePage() {
                   'A customer asks about a product at 11pm — no reply. They buy from a competitor.',
                   'Your support team spends 6 hours a day on the same 10 questions.',
                   'You hire more staff to keep up. Costs grow faster than revenue.',
-                  'Leads fall through the cracks because nobody was there to capture them.',
+                  'Orders fall through the cracks because nobody was there to take them.',
                 ].map(item => (
                   <li key={item} className="flex items-start gap-3 text-sm text-muted-foreground">
                     <span className="w-4 h-4 rounded-full border-2 border-destructive/40 flex-shrink-0 mt-0.5" />
@@ -168,8 +168,8 @@ export default function HomePage() {
                 {[
                   'Trained on your exact products, prices, and policies — not generic knowledge.',
                   'Handles unlimited conversations simultaneously, in any language.',
-                  'Captures phone numbers automatically and logs every lead.',
-                  'Deploys on your website AND Telegram. One setup, two channels.',
+                  'Takes delivery and table orders, then notifies you instantly.',
+                  'Deploys on your website, table QR codes, AND Telegram.',
                 ].map(item => (
                   <li key={item} className="flex items-start gap-3 text-sm">
                     <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />

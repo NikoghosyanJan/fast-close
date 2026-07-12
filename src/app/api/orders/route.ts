@@ -13,12 +13,16 @@ export async function GET() {
 
   const orders = await prisma.order.findMany({
     where: { businessId: business.id },
+    include: {
+      table: { select: { id: true, name: true, number: true } },
+    },
     orderBy: { createdAt: 'desc' },
   });
 
   return Response.json({
     orders: orders.map(o => ({
       ...o,
+      orderType: o.orderType === 'DINE_IN' ? 'dine_in' : 'delivery',
       totalPrice: Number(o.totalPrice),
       items: o.items,
     })),

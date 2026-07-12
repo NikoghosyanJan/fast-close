@@ -121,9 +121,20 @@ export function routeIntent(
     return { intent: 'confirm', confidence: 'medium', forceFullMenu: false, reason: 'confirm with complete cart' };
   }
 
-  if (extractPhoneNumber(text) || (session.phase === 'checkout' && text.length > 8 && !matchesAny(text, CONFIRM_PATTERNS))) {
-    if (extractPhoneNumber(text) || /\b(street|st\.|address|poxoc|փող|ул\.|улиц|dom|taracq|թաղ)\b/i.test(lower)) {
-      return { intent: 'delivery_info', confidence: 'high', forceFullMenu: false, reason: 'phone or address detected' };
+  if (
+    matchesAny(text, CONFIRM_PATTERNS) &&
+    session.cart.length > 0 &&
+    session.orderType === 'dine_in' &&
+    session.tableId
+  ) {
+    return { intent: 'confirm', confidence: 'medium', forceFullMenu: false, reason: 'confirm dine-in cart' };
+  }
+
+  if (session.orderType !== 'dine_in') {
+    if (extractPhoneNumber(text) || (session.phase === 'checkout' && text.length > 8 && !matchesAny(text, CONFIRM_PATTERNS))) {
+      if (extractPhoneNumber(text) || /\b(street|st\.|address|poxoc|փող|ул\.|улиц|dom|taracq|թաղ)\b/i.test(lower)) {
+        return { intent: 'delivery_info', confidence: 'high', forceFullMenu: false, reason: 'phone or address detected' };
+      }
     }
   }
 
@@ -158,19 +169,30 @@ export function routeIntent(
   return { intent: 'general', confidence: 'medium', forceFullMenu: false, reason: 'fallback' };
 }
 
-export function intentPriorityGuide(intent: UserIntent, phase: ConversationPhase): string {
+export function intentPriorityGuide(
+  intent: UserIntent,
+  phase: ConversationPhase,
+  orderMode: import('./session').OrderMode = 'delivery'
+): string {
+  const dineIn = orderMode === 'dine_in';
   const guides: Record<UserIntent, string> = {
-    greeting: 'Welcome the customer warmly and ask how you can help with their order today.',
+    greeting: dineIn
+      ? 'Welcome the guest at their table warmly and ask what they would like to order.'
+      : 'Welcome the customer warmly and ask how you can help with their order today.',
     menu_browse: 'Call search_menu with full_menu=true, then present a concise overview grouped by type if possible.',
     menu_search: 'Call search_menu with the customer query before answering about specific items or prices.',
     add_item: 'Find the product_id via search_menu if needed, then call add_to_cart. Confirm what was added and the running total.',
     modify_cart: 'Use update_cart_item to change quantities. Call get_cart to verify before replying.',
     view_cart: 'Call get_cart and summarize items and total clearly.',
-    checkout: 'Call get_cart, show order summary, then ask for phone and delivery address if not yet saved.',
+    checkout: dineIn
+      ? 'Call get_cart, show order summary with the table, then ask for confirmation. Do NOT ask for phone or address.'
+      : 'Call get_cart, show order summary, then ask for phone and delivery address if not yet saved.',
     confirm: 'Call get_cart to verify, then call confirm_order ONLY if customer clearly confirmed. Thank them after success.',
-    delivery_info: 'Call set_delivery_info with any phone/address provided. If cart is ready, show summary and ask for confirmation.',
+    delivery_info: dineIn
+      ? 'Ignore delivery details — this is a table order. Call get_cart and proceed toward confirmation.'
+      : 'Call set_delivery_info with any phone/address provided. If cart is ready, show summary and ask for confirmation.',
     general: 'Answer helpfully using search_menu when menu info is needed. Stay focused on ordering.',
   };
 
-  return `${guides[intent]} Current phase: ${phase}.`;
+  return `${guides[intent]} Current phase: ${phase}. Order mode: ${orderMode}.`;
 }

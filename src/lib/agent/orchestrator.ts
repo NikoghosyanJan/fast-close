@@ -39,7 +39,8 @@ function formatOrchestrationBlock(ctx: OrchestrationContext, session: SessionSna
     '===== ORCHESTRATION (this turn — follow strictly) =====',
     `Intent: ${ctx.routed.intent} (${ctx.routed.confidence}) — ${ctx.routed.reason}`,
     `Phase: ${session.phase}`,
-    `Guide: ${intentPriorityGuide(ctx.routed.intent, session.phase)}`,
+    `Order mode: ${session.orderType}`,
+    `Guide: ${intentPriorityGuide(ctx.routed.intent, session.phase, session.orderType)}`,
     `Allowed tools: ${ctx.allowedTools.join(', ')}`,
   ];
 
@@ -90,27 +91,30 @@ async function runPreActions(
   let current = session;
   let preloadedCart: Record<string, unknown> | undefined;
 
-  const phone = extractPhoneNumber(lastUserMessage);
-  if (phone) {
-    const result = await executeAgentTool('set_delivery_info', { phone }, {
-      businessId,
-      session: current,
-      chatMessages,
-    });
-    current = result.session;
-    console.log('[Orchestrator] pre-action: saved phone');
-  }
+  // Delivery only — dine-in never collects phone/address
+  if (session.orderType !== 'dine_in') {
+    const phone = extractPhoneNumber(lastUserMessage);
+    if (phone) {
+      const result = await executeAgentTool('set_delivery_info', { phone }, {
+        businessId,
+        session: current,
+        chatMessages,
+      });
+      current = result.session;
+      console.log('[Orchestrator] pre-action: saved phone');
+    }
 
-  const addressLike = lastUserMessage.length > 10
-    && /\b(street|st\.|poxoc|փող|ul\.|улиц|taracq|թաղ|building|dom|bnak|shuka|prospect|avenue|ave)\b/i.test(lastUserMessage);
-  if (addressLike && routed.intent === 'delivery_info') {
-    const result = await executeAgentTool('set_delivery_info', { address: lastUserMessage.trim() }, {
-      businessId,
-      session: current,
-      chatMessages,
-    });
-    current = result.session;
-    console.log('[Orchestrator] pre-action: saved address');
+    const addressLike = lastUserMessage.length > 10
+      && /\b(street|st\.|poxoc|փող|ul\.|улиц|taracq|թաղ|building|dom|bnak|shuka|prospect|avenue|ave)\b/i.test(lastUserMessage);
+    if (addressLike && routed.intent === 'delivery_info') {
+      const result = await executeAgentTool('set_delivery_info', { address: lastUserMessage.trim() }, {
+        businessId,
+        session: current,
+        chatMessages,
+      });
+      current = result.session;
+      console.log('[Orchestrator] pre-action: saved address');
+    }
   }
 
   if (routed.intent === 'view_cart' || routed.intent === 'checkout' || routed.intent === 'confirm') {
@@ -145,9 +149,9 @@ export async function handleAgentMessage(
 
   const routed = routeIntent(lastUserMessage, initialSession, chatMessages);
   let session = await applyPhaseTransition(initialSession, businessId, routed.intent);
-  const allowedTools = getAllowedTools(session.phase, routed.intent);
+  const allowedTools = getAllowedTools(session.phase, routed.intent, session.orderType);
 
-  console.log(`[Orchestrator] channel=${channel} intent=${routed.intent} phase=${session.phase} tools=${allowedTools.join(',')}`);
+  console.log(`[Orchestrator] channel=${channel} intent=${routed.intent} phase=${session.phase} mode=${session.orderType} tools=${allowedTools.join(',')}`);
 
   const pre = await runPreActions(session, businessId, lastUserMessage, chatMessages, routed);
   session = pre.session;
@@ -213,9 +217,9 @@ export async function handleAgentMessageStream(
 
   const routed = routeIntent(lastUserMessage, initialSession, chatMessages);
   let session = await applyPhaseTransition(initialSession, businessId, routed.intent);
-  const allowedTools = getAllowedTools(session.phase, routed.intent);
+  const allowedTools = getAllowedTools(session.phase, routed.intent, session.orderType);
 
-  console.log(`[Orchestrator] channel=${channel} intent=${routed.intent} phase=${session.phase} tools=${allowedTools.join(',')}`);
+  console.log(`[Orchestrator] channel=${channel} intent=${routed.intent} phase=${session.phase} mode=${session.orderType} tools=${allowedTools.join(',')}`);
 
   const pre = await runPreActions(session, businessId, lastUserMessage, chatMessages, routed);
   session = pre.session;

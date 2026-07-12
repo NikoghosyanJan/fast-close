@@ -26,19 +26,40 @@ enum Role {
 }
 
 model Business {
-  id           String       @id @default(cuid())
-  userId       String       @unique @map("user_id")
+  id           String        @id @default(cuid())
+  userId       String        @unique @map("user_id")
   name         String
-  systemPrompt String?      @map("system_prompt")
-  createdAt    DateTime     @default(now()) @map("created_at")
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  systemPrompt String?       @map("system_prompt")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   products     Product[]
-  leads        Lead[]
   orders       Order[]
+  tables       Table[]
   telegramBot  TelegramBot?
   chatSessions ChatSession[]
 
   @@map("businesses")
+}
+
+model Table {
+  id           String        @id @default(cuid())
+  businessId   String        @map("business_id")
+  name         String
+  number       Int
+  active       Boolean       @default(true)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  orders       Order[]
+  chatSessions ChatSession[]
+
+  @@unique([businessId, number])
+  @@index([businessId])
+  @@map("tables")
+}
+
+enum OrderType {
+  DELIVERY
+  DINE_IN
 }
 
 model Product {
@@ -58,23 +79,13 @@ model Product {
   @@map("products")
 }
 
-model Lead {
-  id          String   @id @default(cuid())
-  businessId  String   @map("business_id")
-  clientPhone String   @map("client_phone")
-  chatSummary String?  @map("chat_summary")
-  createdAt   DateTime @default(now()) @map("created_at")
-  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-
-  @@unique([businessId, clientPhone])
-  @@map("leads")
-}
-
 model Order {
   id              String      @id @default(cuid())
   businessId      String      @map("business_id")
-  customerPhone   String      @map("customer_phone")
-  deliveryAddress String      @map("delivery_address")
+  orderType       OrderType   @default(DELIVERY) @map("order_type")
+  tableId         String?     @map("table_id")
+  customerPhone   String?     @map("customer_phone")
+  deliveryAddress String?     @map("delivery_address")
   items           Json
   totalPrice      Decimal     @map("total_price") @db.Decimal(10, 2)
   status          OrderStatus @default(NEW)
@@ -82,7 +93,11 @@ model Order {
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
   business        Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  table           Table?      @relation(fields: [tableId], references: [id], onDelete: SetNull)
 
+  @@index([businessId])
+  @@index([tableId])
+  @@index([orderType])
   @@map("orders")
 }
 
@@ -125,6 +140,8 @@ model ChatSession {
   businessId      String            @map("business_id")
   channel         SessionChannel
   externalKey     String            @map("external_key")
+  orderType       OrderType         @default(DELIVERY) @map("order_type")
+  tableId         String?           @map("table_id")
   phase           ConversationPhase @default(BROWSING)
   cart            Json              @default("[]")
   customerPhone   String?           @map("customer_phone")
@@ -133,8 +150,10 @@ model ChatSession {
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")
   business        Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  table           Table?            @relation(fields: [tableId], references: [id], onDelete: SetNull)
 
   @@unique([businessId, channel, externalKey])
   @@index([businessId])
+  @@index([tableId])
   @@map("chat_sessions")
 }

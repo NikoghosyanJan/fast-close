@@ -7,10 +7,11 @@ import { cn } from '@/lib/utils';
 
 interface Props {
   business: { id: string; name: string };
+  table?: { id: string; name: string; number: number };
 }
 
-function getOrCreateSessionId(businessId: string): string {
-  const key = `fc_session_${businessId}`;
+function getOrCreateSessionId(businessId: string, tableId?: string): string {
+  const key = tableId ? `fc_session_${businessId}_table_${tableId}` : `fc_session_${businessId}`;
   if (typeof window === 'undefined') return '';
   let id = localStorage.getItem(key);
   if (!id) {
@@ -20,32 +21,38 @@ function getOrCreateSessionId(businessId: string): string {
   return id;
 }
 
-export default function ChatInterface({ business }: Props) {
+export default function ChatInterface({ business, table }: Props) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [sessionId] = useState(() =>
-    typeof window !== 'undefined' ? getOrCreateSessionId(business.id) : ''
+    typeof window !== 'undefined' ? getOrCreateSessionId(business.id, table?.id) : ''
   );
+
+  const welcome = table
+    ? `Hi! 👋 Welcome to **${business.name}**. You're at **${table.name}**. I'm your AI waiter — what would you like to order?`
+    : `Hi! 👋 I'm the AI assistant for **${business.name}**. How can I help you today?`;
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
     api: '/api/chat',
-    body: { businessId: business.id, sessionId },
+    body: {
+      businessId: business.id,
+      sessionId,
+      ...(table ? { tableId: table.id } : {}),
+    },
     streamProtocol: 'text',
     initialMessages: [
       {
         id: 'welcome',
         role: 'assistant',
-        content: `Hi! 👋 I'm the AI assistant for **${business.name}**. How can I help you today?`,
+        content: welcome,
       },
     ],
   });
 
-  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Focus input on mount
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
@@ -55,7 +62,6 @@ export default function ChatInterface({ business }: Props) {
 
   return (
     <div className="h-screen flex flex-col bg-[hsl(var(--chat-bg))]">
-      {/* Header */}
       <header
         className="flex items-center gap-3 px-4 py-3 shadow-sm z-10"
         style={{ background: 'hsl(var(--primary))' }}
@@ -69,12 +75,13 @@ export default function ChatInterface({ business }: Props) {
           </p>
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-green-300 animate-pulse" />
-            <span className="text-white/80 text-xs">AI Assistant · Online</span>
+            <span className="text-white/80 text-xs">
+              {table ? `${table.name} · AI Waiter` : 'AI Assistant · Online'}
+            </span>
           </div>
         </div>
       </header>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.map((msg, idx) => {
           const isUser = msg.role === 'user';
@@ -100,7 +107,6 @@ export default function ChatInterface({ business }: Props) {
           );
         })}
 
-        {/* Typing indicator — only before first streamed token */}
         {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
           <div className="flex items-start animate-fade-in">
             <div className="chat-bubble-ai flex items-center gap-1 py-3 px-4">
@@ -120,7 +126,6 @@ export default function ChatInterface({ business }: Props) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
       <div className="px-3 py-3 bg-[hsl(var(--chat-bg))] border-t border-border/40">
         <form
           onSubmit={handleSubmit}
@@ -160,9 +165,21 @@ export default function ChatInterface({ business }: Props) {
   );
 }
 
-// Render markdown-lite: bold and line breaks
+/** Normalize stream/markdown quirks for the plain-text chat bubble. */
+function normalizeChatText(raw: string): string {
+  let text = raw;
+  // If a bad stream protocol leaked JSON escapes, turn them into real breaks.
+  if (text.includes('\\n') && !text.includes('\n')) {
+    text = text.replace(/\\n/g, '\n');
+  }
+  // Strip markdown headings the model sometimes still emits.
+  text = text.replace(/^#{1,6}\s+/gm, '');
+  return text;
+}
+
 function MessageContent({ content }: { content: string }) {
-  const parts = content.split(/(\*\*[^*]+\*\*)/g);
+  const text = normalizeChatText(content);
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return (
     <>
       {parts.map((part, i) => {

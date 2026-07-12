@@ -6,6 +6,7 @@ import {
   updateSession,
   cartTotal,
   orderFromSession,
+  isDineIn,
 } from './session';
 import type { CartItem, ConversationPhase } from './types';
 import type { AgentToolName } from './tools';
@@ -36,13 +37,18 @@ function cartPayload(session: SessionSnapshot) {
     total: cartTotal(session.cart),
     phone: session.customerPhone,
     address: session.deliveryAddress,
+    orderType: session.orderType,
+    tableId: session.tableId,
+    tableName: session.tableName,
+    tableNumber: session.tableNumber,
     phase: session.phase,
   };
 }
 
-function phaseForCart(cart: CartItem[], phone: string | null, address: string | null): ConversationPhase {
+function phaseForCart(session: SessionSnapshot, cart: CartItem[]): ConversationPhase {
   if (cart.length === 0) return 'browsing';
-  if (phone && address) return 'checkout';
+  if (isDineIn(session)) return 'checkout';
+  if (session.customerPhone && session.deliveryAddress) return 'checkout';
   return 'ordering';
 }
 
@@ -117,7 +123,7 @@ export async function executeAgentTool(
 
       session = await updateSession(session.id, businessId, {
         cart,
-        phase: phaseForCart(cart, session.customerPhone, session.deliveryAddress),
+        phase: phaseForCart(session, cart),
       });
 
       return {
@@ -149,7 +155,7 @@ export async function executeAgentTool(
 
       session = await updateSession(session.id, businessId, {
         cart,
-        phase: phaseForCart(cart, session.customerPhone, session.deliveryAddress),
+        phase: phaseForCart(session, cart),
       });
 
       return {
@@ -168,6 +174,18 @@ export async function executeAgentTool(
     }
 
     case 'set_delivery_info': {
+      if (isDineIn(session)) {
+        return {
+          output: {
+            success: false,
+            error: 'Dine-in orders do not need phone or address. Proceed to confirm_order after summarizing the cart.',
+            cart: cartPayload(session),
+          },
+          session,
+          orderReady: null,
+        };
+      }
+
       const phoneArg = args.phone != null ? String(args.phone) : null;
       const addressArg = args.address != null ? String(args.address).trim() : null;
       const phone = phoneArg ? (extractPhoneNumber(phoneArg) ?? phoneArg.replace(/\D/g, '')) : session.customerPhone;
@@ -176,7 +194,7 @@ export async function executeAgentTool(
       session = await updateSession(session.id, businessId, {
         customerPhone: phone,
         deliveryAddress: address,
-        phase: phaseForCart(session.cart, phone, address),
+        phase: phaseForCart({ ...session, customerPhone: phone, deliveryAddress: address }, session.cart),
       });
 
       return {
@@ -196,8 +214,12 @@ export async function executeAgentTool(
       if (!order) {
         const missing: string[] = [];
         if (session.cart.length === 0) missing.push('cart_items');
-        if (!session.customerPhone) missing.push('phone');
-        if (!session.deliveryAddress) missing.push('address');
+        if (isDineIn(session)) {
+          if (!session.tableId) missing.push('table');
+        } else {
+          if (!session.customerPhone) missing.push('phone');
+          if (!session.deliveryAddress) missing.push('address');
+        }
         return {
           output: {
             success: false,
@@ -221,6 +243,10 @@ export async function executeAgentTool(
             totalPrice: order.totalPrice,
             customerPhone: order.customerPhone,
             deliveryAddress: order.deliveryAddress,
+            orderType: order.orderType,
+            tableId: order.tableId,
+            tableName: order.tableName,
+            tableNumber: order.tableNumber,
           },
         },
         session,

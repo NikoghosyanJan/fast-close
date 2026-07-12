@@ -1,4 +1,3 @@
-import { extractPhoneNumber } from '@/lib/openai';
 import { prisma } from '@/lib/prisma';
 import {
   getOrCreateSession,
@@ -15,28 +14,15 @@ type StreamTurnResult = AgentStreamTurnCompleted;
 async function runPostTurnSideEffects(
   businessId: string,
   businessName: string,
-  lastUserMessage: string,
-  chatMessages: { role: string; content: string }[],
   result: StreamTurnResult
 ) {
   if (result.orderReady) {
     await persistOrder(businessId, businessName, result.orderReady);
   }
-
-  const phone = result.session.customerPhone ?? extractPhoneNumber(lastUserMessage);
-  if (phone) {
-    const summary = chatMessages.slice(-4)
-      .map(m => `${m.role}: ${m.content}`).join('\n');
-    await prisma.lead.upsert({
-      where: { businessId_clientPhone: { businessId, clientPhone: phone } },
-      update: { chatSummary: summary },
-      create: { businessId, clientPhone: phone, chatSummary: summary },
-    });
-  }
 }
 
 export async function POST(req: NextRequest) {
-  const { messages, businessId, sessionId: clientSessionId } = await req.json();
+  const { messages, businessId, sessionId: clientSessionId, tableId } = await req.json();
   if (!businessId) return new Response('Missing businessId', { status: 400 });
 
   const sessionId = clientSessionId || randomUUID();
@@ -47,7 +33,23 @@ export async function POST(req: NextRequest) {
   });
   if (!business) return new Response('Business not found', { status: 404 });
 
-  const session = await getOrCreateSession(businessId, 'web', sessionId);
+  if (tableId) {
+    const table = await prisma.table.findFirst({
+      where: { id: tableId, businessId, active: true },
+      select: { id: true },
+    });
+    if (!table) return new Response('Table not found', { status: 404 });
+  }
+
+  let session;
+  try {
+    session = await getOrCreateSession(businessId, 'web', sessionId, {
+      tableId: tableId || null,
+    });
+  } catch (e) {
+    console.error('[Chat] session create failed', e);
+    return new Response('Invalid table', { status: 400 });
+  }
 
   const chatMessages = messages
     .filter((m: { role: string }) => m.role === 'user' || m.role === 'assistant')
@@ -73,13 +75,7 @@ export async function POST(req: NextRequest) {
     });
 
     completed
-      .then(result => runPostTurnSideEffects(
-        businessId,
-        business.name,
-        lastUserMessage,
-        chatMessages,
-        result
-      ))
+      .then(result => runPostTurnSideEffects(businessId, business.name, result))
       .catch(e => console.error('[Chat post-turn]', e));
 
     return new StreamingTextResponse(stream);

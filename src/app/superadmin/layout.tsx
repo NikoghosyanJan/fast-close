@@ -26,7 +26,7 @@ export default async function SuperadminLayout({ children }: { children: React.R
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           <Link href="/superadmin" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-            <Building2 className="w-4 h-4" /> Businesses & Leads
+            <Building2 className="w-4 h-4" /> Businesses
           </Link>
           <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
             <LayoutDashboard className="w-4 h-4" /> My Dashboard

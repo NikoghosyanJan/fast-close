@@ -86,7 +86,7 @@ export const AGENT_TOOLS: ChatCompletionTool[] = [
     function: {
       name: 'confirm_order',
       description:
-        'Finalize the order after the customer explicitly confirms the summary. Validates cart, phone, and address. Call ONLY after verbal confirmation.',
+        'Finalize the order after the customer explicitly confirms the summary. For delivery: validates cart, phone, and address. For dine-in: validates cart and table. Call ONLY after verbal confirmation.',
       parameters: { type: 'object', properties: {} },
     },
   },
@@ -111,16 +111,20 @@ export function parseToolArgs(raw: string): Record<string, unknown> {
 /** Phase- and intent-aware tool allowlist — reduces wrong tool calls. */
 export function getAllowedTools(
   phase: import('./types').ConversationPhase,
-  intent: import('./intent-router').UserIntent
+  intent: import('./intent-router').UserIntent,
+  orderMode: import('./session').OrderMode = 'delivery'
 ): AgentToolName[] {
-  const all: AgentToolName[] = [
-    'search_menu',
-    'add_to_cart',
-    'update_cart_item',
-    'get_cart',
-    'set_delivery_info',
-    'confirm_order',
-  ];
+  const dineIn = orderMode === 'dine_in';
+  const all: AgentToolName[] = dineIn
+    ? ['search_menu', 'add_to_cart', 'update_cart_item', 'get_cart', 'confirm_order']
+    : [
+        'search_menu',
+        'add_to_cart',
+        'update_cart_item',
+        'get_cart',
+        'set_delivery_info',
+        'confirm_order',
+      ];
 
   const isConfirmIntent = intent === 'confirm';
 
@@ -135,11 +139,17 @@ export function getAllowedTools(
     case 'view_cart':
       return ['get_cart', 'update_cart_item', 'add_to_cart'];
     case 'checkout':
-      return ['get_cart', 'set_delivery_info', 'update_cart_item', 'search_menu'];
+      return dineIn
+        ? ['get_cart', 'confirm_order', 'update_cart_item', 'search_menu']
+        : ['get_cart', 'set_delivery_info', 'update_cart_item', 'search_menu'];
     case 'confirm':
-      return ['get_cart', 'set_delivery_info', 'confirm_order'];
+      return dineIn
+        ? ['get_cart', 'confirm_order']
+        : ['get_cart', 'set_delivery_info', 'confirm_order'];
     case 'delivery_info':
-      return ['set_delivery_info', 'get_cart', 'confirm_order'];
+      return dineIn
+        ? ['get_cart', 'confirm_order']
+        : ['set_delivery_info', 'get_cart', 'confirm_order'];
     case 'greeting':
     case 'general':
     default:
@@ -150,12 +160,16 @@ export function getAllowedTools(
     case 'confirmed':
       return ['search_menu', 'get_cart', 'add_to_cart'];
     case 'checkout':
-      return ['get_cart', 'set_delivery_info', 'confirm_order', 'update_cart_item', 'search_menu'];
+      return dineIn
+        ? ['get_cart', 'confirm_order', 'update_cart_item', 'search_menu']
+        : ['get_cart', 'set_delivery_info', 'confirm_order', 'update_cart_item', 'search_menu'];
     case 'ordering':
       return all.filter(t => t !== 'confirm_order' || isConfirmIntent);
     case 'browsing':
     case 'greeting':
-      return ['search_menu', 'get_cart', 'add_to_cart', 'set_delivery_info'];
+      return dineIn
+        ? ['search_menu', 'get_cart', 'add_to_cart']
+        : ['search_menu', 'get_cart', 'add_to_cart', 'set_delivery_info'];
     default:
       return all;
   }

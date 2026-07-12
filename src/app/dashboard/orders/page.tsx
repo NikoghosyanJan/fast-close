@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ShoppingBag, Phone, MapPin, Clock, ChevronDown, RefreshCw } from 'lucide-react';
+import { ShoppingBag, Phone, MapPin, Clock, RefreshCw, Armchair } from 'lucide-react';
 import { toast } from 'sonner';
 export const dynamic = 'force-dynamic';
 
 interface OrderItem { name: string; quantity: number; price: number; }
 interface Order {
   id: string;
-  customerPhone: string;
-  deliveryAddress: string;
+  orderType: 'delivery' | 'dine_in';
+  customerPhone: string | null;
+  deliveryAddress: string | null;
+  tableId: string | null;
+  table: { id: string; name: string; number: number } | null;
   items: OrderItem[];
   totalPrice: number;
   status: 'NEW' | 'CONFIRMED' | 'PREPARING' | 'DELIVERED' | 'CANCELLED';
@@ -139,13 +142,27 @@ export default function OrdersPage() {
                       </span>
                       <span className="text-xs text-muted-foreground">#{order.id.slice(-8)}</span>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1.5">
-                        <Phone className="w-3.5 h-3.5" />{order.customerPhone}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5" />{order.deliveryAddress}
-                      </span>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                      {order.orderType === 'dine_in' ? (
+                        <span className="flex items-center gap-1.5">
+                          <Armchair className="w-3.5 h-3.5" />
+                          {order.table?.name
+                            ?? order.deliveryAddress
+                            ?? (order.tableId ? `Table ${order.tableId.slice(-4)}` : 'Dine-in')}
+                          <span className="text-[10px] uppercase tracking-wide bg-muted px-1.5 py-0.5 rounded font-semibold">
+                            Table
+                          </span>
+                        </span>
+                      ) : (
+                        <>
+                          <span className="flex items-center gap-1.5">
+                            <Phone className="w-3.5 h-3.5" />{order.customerPhone || '—'}
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5" />{order.deliveryAddress || '—'}
+                          </span>
+                        </>
+                      )}
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
                         {new Date(order.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}

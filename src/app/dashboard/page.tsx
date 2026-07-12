@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Package, Users, Send, ArrowRight, MessageSquare, ShoppingBag } from 'lucide-react';
+import { Package, Send, ArrowRight, MessageSquare, ShoppingBag, Armchair } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
@@ -12,7 +12,7 @@ export default async function DashboardPage() {
   const business = await prisma.business.findUnique({
     where: { userId: session.user.id },
     include: {
-      _count: { select: { products: true, leads: true, orders: true } },
+      _count: { select: { products: true, tables: true, orders: true } },
       telegramBot: { select: { id: true } },
       orders: {
         where: { status: 'NEW' },
@@ -44,7 +44,7 @@ export default async function DashboardPage() {
       color: 'text-primary',
       bg: 'bg-primary/10',
     },
-    { label: 'Captured Leads', value: business._count.leads, icon: Users, href: '/dashboard/leads', color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Tables', value: business._count.tables, icon: Armchair, href: '/dashboard/tables', color: 'text-green-600', bg: 'bg-green-50' },
     { label: 'Telegram Bot', value: business.telegramBot ? 'Active' : 'Not set', icon: Send, href: '/dashboard/telegram', color: 'text-violet-600', bg: 'bg-violet-50' },
   ];
 
@@ -94,6 +94,9 @@ export default async function DashboardPage() {
           <Link href="/dashboard/products" className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-sm font-medium hover:opacity-90 transition">
             <Package className="w-4 h-4" /> Manage Menu
           </Link>
+          <Link href="/dashboard/tables" className="inline-flex items-center gap-2 border border-border px-4 py-2 rounded-xl text-sm font-medium hover:bg-muted transition">
+            <Armchair className="w-4 h-4" /> Manage Tables
+          </Link>
           <Link href={`/chat/${business.id}`} target="_blank" className="inline-flex items-center gap-2 border border-border px-4 py-2 rounded-xl text-sm font-medium hover:bg-muted transition">
             <MessageSquare className="w-4 h-4" /> Open Chat Widget
           </Link>
@@ -111,7 +114,7 @@ export default async function DashboardPage() {
         <code className="text-xs bg-background rounded-lg px-3 py-2 block border border-border">
           {process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/chat/{business.id}
         </code>
-        <p className="text-xs text-muted-foreground mt-2">Share with customers or embed on your website.</p>
+        <p className="text-xs text-muted-foreground mt-2">Share with customers or embed on your website. Table QR codes use a separate dine-in URL.</p>
       </div>
     </div>
   );

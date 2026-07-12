@@ -4,7 +4,7 @@ These rules guide AI-assisted edits in this codebase. Read `PROJECT_CONTEXT.md` 
 
 ## Before making changes
 
-- This is a multi-tenant SaaS. Every query touching `Product`, `Order`, `Lead`, or `TelegramBot` MUST be scoped by `businessId`. Never write a query that could leak one restaurant's data to another.
+- This is a multi-tenant SaaS. Every query touching `Product`, `Order`, `Table`, or `TelegramBot` MUST be scoped by `businessId`. Never write a query that could leak one restaurant's data to another.
 - Don't modify `prisma/schema.prisma` without also writing the matching hand-written SQL migration in `prisma/migrations/00X_name/migration.sql`. `prisma db push` is NOT used in this project — see ADR-1 and the migrations note in PROJECT_CONTEXT.md.
 - Don't reintroduce `@prisma/adapter-neon`, `@neondatabase/serverless`, or `ws` as dependencies. This was tried and broke `DATABASE_URL` resolution in Server Actions. Standard `PrismaClient` + Neon's pooled/direct connection string works correctly.
 

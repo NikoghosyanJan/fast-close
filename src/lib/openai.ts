@@ -101,6 +101,10 @@ export interface ExtractedOrder {
   totalPrice: number;
   customerPhone: string;
   deliveryAddress: string;
+  orderType?: 'delivery' | 'dine_in';
+  tableId?: string | null;
+  tableName?: string | null;
+  tableNumber?: number | null;
 }
 
 export async function extractOrderFromConversation(
@@ -145,9 +149,14 @@ export function buildSystemPrompt(
   customPrompt?: string | null,
   menuScope: 'full' | 'relevant' | 'empty' = 'relevant',
   sessionContext?: string | null,
-  useTools = false
+  useTools = false,
+  orderMode: 'delivery' | 'dine_in' = 'delivery'
 ): string {
-  const persona = customPrompt?.trim() || `You are a friendly waiter and ordering assistant for ${businessName}.`;
+  const isDineIn = orderMode === 'dine_in';
+  const persona = customPrompt?.trim()
+    || (isDineIn
+      ? `You are a friendly table-side waiter and ordering assistant for ${businessName}.`
+      : `You are a friendly waiter and ordering assistant for ${businessName}.`);
 
   const menuHeader =
     menuScope === 'full'
@@ -168,7 +177,19 @@ export function buildSystemPrompt(
         : `- Menu data is unavailable. Apologize and ask them to try again in a moment or call the restaurant. Do not guess items.`;
 
   const toolInstructions = useTools
-    ? `
+    ? isDineIn
+      ? `
+===== TOOLS (required — cart is server-side) =====
+You have tools to manage orders. You MUST call tools for cart changes — never claim items were added without calling add_to_cart.
+- search_menu — find items and product_ids before adding unfamiliar items
+- add_to_cart — when customer wants to order (use exact product_id from menu/search)
+- update_cart_item — change quantity; quantity 0 removes item
+- get_cart — check current order before summarizing
+- confirm_order — ONLY after customer explicitly says yes/confirm to the final summary
+This is a DINE-IN table order. Do NOT ask for phone or delivery address. The table is already known from the QR scan.
+Never invent product_ids. Only use ids from search_menu results or the menu block below.
+`
+      : `
 ===== TOOLS (required — cart is server-side) =====
 You have tools to manage orders. You MUST call tools for cart changes — never claim items were added without calling add_to_cart.
 - search_menu — find items and product_ids before adding unfamiliar items
@@ -184,6 +205,10 @@ Never invent product_ids. Only use ids from search_menu results or the menu bloc
   const confirmStep = '7. CONFIRM — after customer confirms the summary, call confirm_order tool, then thank them warmly.';
 
   const buildOrderStep = '5. BUILD ORDER — use add_to_cart / update_cart_item tools when customer orders; use get_cart before summarizing.';
+
+  const checkoutStep = isDineIn
+    ? '6. CHECKOUT — when done ordering, show summary with total from cart and mention their table, then ask confirmation. Do NOT ask for phone or address.'
+    : '6. CHECKOUT — when done ordering, ask for phone + delivery address, show summary with total from cart, ask confirmation.';
 
   return `${persona}
 ${toolInstructions}
@@ -203,13 +228,14 @@ ${antiHallucination}
 3. HELP CHOOSE — if unsure, ask one preference question, then suggest 2–3 items FROM THE MENU ONLY.
 4. CROSS-SELL once per order — when they pick a main, suggest ONE natural add-on FROM THE MENU (drink, side, dessert).
 ${buildOrderStep}
-6. CHECKOUT — when done ordering, ask for phone + delivery address, show summary with total from cart, ask confirmation.
+${checkoutStep}
 ${confirmStep}
 
 ===== RULES =====
 - Show prices in AMD clearly.
 - Short messages — 2–4 sentences usually enough.
 - Redirect off-topic questions gently back to ordering.
+- PROSE ONLY in replies: no markdown headings (# ## ###), no markdown tables, no code fences. Bold with **like this** is OK. Use plain line breaks for lists.
 
 ${sessionContext ? `${sessionContext}\n\n` : ''}${menuHeader}
 ${context || 'Menu is being updated. Please check back soon or call us directly.'}
@@ -250,14 +276,22 @@ export async function sendOrderToTelegram(
     .map(i => `  • ${i.name} x${i.quantity} — ${Number(i.price).toLocaleString()} AMD`)
     .join('\n');
 
+  const isDineIn = order.orderType === 'dine_in';
+  const tableLabel =
+    order.tableName ??
+    (order.tableNumber != null ? `Table ${order.tableNumber}` : order.deliveryAddress);
+
+  const locationBlock = isDineIn
+    ? `🪑 *Table:* ${tableLabel}\n🍽 *Type:* Dine-in`
+    : `📞 *Phone:* ${order.customerPhone}\n📍 *Address:* ${order.deliveryAddress}`;
+
   const text = `🆕 *New Order — ${businessName}*
 
 📦 *Items:*
 ${itemLines}
 
 💰 *Total:* ${Number(order.totalPrice).toLocaleString()} AMD
-📞 *Phone:* ${order.customerPhone}
-📍 *Address:* ${order.deliveryAddress}
+${locationBlock}
 🆔 *Order ID:* \`${orderId}\`
 
 _Received via FastClose AI_`;

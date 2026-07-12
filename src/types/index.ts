@@ -24,14 +24,6 @@ export interface Product {
   created_at: string;
 }
 
-export interface Lead {
-  id: string;
-  business_id: string;
-  client_phone: string;
-  chat_summary: string | null;
-  created_at: string;
-}
-
 export interface TelegramBot {
   id: string;
   business_id: string;

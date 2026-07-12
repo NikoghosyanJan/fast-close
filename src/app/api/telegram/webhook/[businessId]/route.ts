@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/prisma';
-import { extractPhoneNumber } from '@/lib/openai';
 import {
   getOrCreateSession,
   handleAgentMessage,
@@ -69,15 +68,6 @@ export async function POST(req: NextRequest, { params }: { params: { businessId:
     } catch (e) {
       console.error('[TG Order] error:', e);
     }
-  }
-
-  const phone = result.session.customerPhone ?? extractPhoneNumber(userText);
-  if (phone) {
-    await prisma.lead.upsert({
-      where: { businessId_clientPhone: { businessId, clientPhone: phone } },
-      update: { chatSummary: `[Telegram]\n${updatedHistory.map(m => `${m.role}: ${m.content}`).join('\n')}` },
-      create: { businessId, clientPhone: phone, chatSummary: `[Telegram]\nuser: ${userText}` },
-    });
   }
 
   const chunks = result.reply.match(/[\s\S]{1,4000}/g) ?? [result.reply];

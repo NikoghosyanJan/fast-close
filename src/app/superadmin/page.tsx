@@ -1,28 +1,24 @@
 import { prisma } from '@/lib/prisma';
-import { Building2, Users, Phone, Package } from 'lucide-react';
+import { Building2, Users, Package, ShoppingBag } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 export default async function SuperadminPage() {
-  const [businesses, leads, users] = await Promise.all([
+  const [businesses, users, orderCount] = await Promise.all([
     prisma.business.findMany({
       include: {
         user: { select: { email: true } },
-        _count: { select: { products: true, leads: true } },
+        _count: { select: { products: true, orders: true, tables: true } },
       },
       orderBy: { createdAt: 'desc' },
     }),
-    prisma.lead.findMany({
-      include: { business: { select: { name: true } } },
-      orderBy: { createdAt: 'desc' },
-      take: 20,
-    }),
     prisma.user.findMany({ orderBy: { createdAt: 'desc' } }),
+    prisma.order.count(),
   ]);
 
   const stats = [
     { label: 'Total Businesses', value: businesses.length, icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Total Users', value: users.length, icon: Users, color: 'text-violet-600', bg: 'bg-violet-50' },
-    { label: 'Total Leads', value: leads.length, icon: Phone, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Total Orders', value: orderCount, icon: ShoppingBag, color: 'text-green-600', bg: 'bg-green-50' },
   ];
 
   return (
@@ -56,30 +52,9 @@ export default async function SuperadminPage() {
               </div>
               <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><Package className="w-3 h-3" />{b._count.products}</span>
-                <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{b._count.leads}</span>
+                <span className="flex items-center gap-1"><ShoppingBag className="w-3 h-3" />{b._count.orders}</span>
                 <a href={`/chat/${b.id}`} target="_blank" className="text-primary hover:underline font-medium">Chat →</a>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-border flex items-center gap-2">
-          <Phone className="w-4 h-4 text-muted-foreground" />
-          <h2 className="font-semibold">Recent Leads</h2>
-          <span className="text-xs text-muted-foreground ml-auto">Last 20</span>
-        </div>
-        <div className="divide-y divide-border">
-          {leads.map(lead => (
-            <div key={lead.id} className="px-5 py-3 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium">{lead.clientPhone}</p>
-                <p className="text-xs text-muted-foreground">{lead.business.name}</p>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {new Date(lead.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              </p>
             </div>
           ))}
         </div>

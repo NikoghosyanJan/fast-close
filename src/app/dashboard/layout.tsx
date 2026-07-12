@@ -3,7 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { signOut } from '@/lib/auth-actions';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Zap, LayoutDashboard, Package, Users, Send, LogOut, ExternalLink, Settings, ShoppingBag } from 'lucide-react';
+import { Zap, LogOut, ExternalLink } from 'lucide-react';
+import DashboardNav from '@/components/dashboard/DashboardNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,15 +16,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
     prisma.user.findUnique({ where: { id: session.user.id }, select: { email: true, role: true } }),
     prisma.business.findUnique({ where: { userId: session.user.id }, select: { id: true, name: true } }),
   ]);
-
-  const nav = [
-    { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
-    { href: '/dashboard/products', label: 'Products', icon: Package },
-    { href: '/dashboard/leads', label: 'Leads', icon: Users },
-    { href: '/dashboard/telegram', label: 'Telegram Bot', icon: Send },
-    { href: '/dashboard/settings', label: 'Settings', icon: Settings },
-    { href: '/dashboard/orders', label: 'Orders', icon: ShoppingBag },
-  ];
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -50,23 +42,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
         )}
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          {nav.map(({ href, label, icon: Icon }) => (
-            <Link key={href} href={href}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-              <Icon className="w-4 h-4" />{label}
-            </Link>
-          ))}
+        <DashboardNav />
+
+        <div className="px-3 pb-4 border-t border-border pt-3 mt-auto space-y-1">
           {profile?.role === 'SUPERADMIN' && (
             <Link href="/superadmin"
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-amber-600 hover:bg-amber-50 transition-colors mt-4">
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-amber-600 hover:bg-amber-50 transition-colors">
               <Zap className="w-4 h-4" /> Superadmin
             </Link>
           )}
-        </nav>
-
-        <div className="px-3 pb-4 border-t border-border pt-3">
-          <div className="px-3 py-1.5 mb-2">
+          <div className="px-3 py-1.5 mb-1">
             <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
             <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded-full font-medium">
               {profile?.role?.toLowerCase()}

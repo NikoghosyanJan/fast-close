@@ -1,24 +1,29 @@
 import { prisma } from '@/lib/prisma';
 import { sendOrderToTelegram, type ExtractedOrder } from '@/lib/openai';
 import type { Prisma } from '@prisma/client';
+import { orderTypeToDb } from './session';
 
 export async function persistOrder(
   businessId: string,
   businessName: string,
   order: ExtractedOrder
 ) {
+  const orderType = order.orderType ?? 'delivery';
+
   const created = await prisma.order.create({
     data: {
       businessId,
-      customerPhone: order.customerPhone,
-      deliveryAddress: order.deliveryAddress,
+      orderType: orderTypeToDb(orderType),
+      tableId: order.tableId ?? null,
+      customerPhone: order.customerPhone || null,
+      deliveryAddress: order.deliveryAddress || null,
       items: order.items as unknown as Prisma.InputJsonValue,
       totalPrice: order.totalPrice,
       status: 'NEW',
     },
   });
 
-  console.log('[Order] saved:', created.id);
+  console.log('[Order] saved:', created.id, orderType, order.tableId ? `table=${order.tableId}` : '');
 
   const tgBot = await prisma.telegramBot.findUnique({
     where: { businessId },
