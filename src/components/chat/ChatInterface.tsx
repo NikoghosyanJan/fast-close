@@ -29,8 +29,8 @@ export default function ChatInterface({ business, table }: Props) {
   );
 
   const welcome = table
-    ? `Hi! 👋 Welcome to **${business.name}**. You're at **${table.name}**. I'm your AI waiter — what would you like to order?`
-    : `Hi! 👋 I'm the AI assistant for **${business.name}**. How can I help you today?`;
+    ? `Welcome to **${business.name}**. You're seated at **${table.name}**. I'm your AI waiter — what would you like to order?`
+    : `Welcome to **${business.name}**. I can help with the menu and take your order. What are you in the mood for?`;
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
     api: '/api/chat',
@@ -61,118 +61,128 @@ export default function ChatInterface({ business, table }: Props) {
     date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className="h-screen flex flex-col bg-[hsl(var(--chat-bg))]">
-      <header
-        className="flex items-center gap-3 px-4 py-3 shadow-sm z-10"
-        style={{ background: 'hsl(var(--primary))' }}
-      >
-        <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-          <Zap className="w-4 h-4 text-white" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-white font-semibold text-sm truncate" style={{ fontFamily: 'Syne, sans-serif' }}>
-            {business.name}
-          </p>
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-300 animate-pulse" />
-            <span className="text-white/80 text-xs">
-              {table ? `${table.name} · AI Waiter` : 'AI Assistant · Online'}
-            </span>
+    <div className="chat-shell flex h-[100svh] flex-col">
+      <header className="z-10 border-b border-border/60 bg-card/90 backdrop-blur-md">
+        <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3.5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary">
+            <Zap className="h-4 w-4 text-primary-foreground" />
           </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold tracking-tight" style={{ fontFamily: 'Syne, sans-serif' }}>
+              {business.name}
+            </p>
+            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="landing-dot inline-block h-1.5 w-1.5 rounded-sm bg-primary" />
+              {table ? `${table.name} · AI waiter` : 'AI ordering · Online'}
+            </p>
+          </div>
+          {table && (
+            <span className="shrink-0 rounded-lg border border-border bg-muted/60 px-2.5 py-1 text-[11px] font-semibold text-foreground">
+              {table.name}
+            </span>
+          )}
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        {messages.map((msg, idx) => {
-          const isUser = msg.role === 'user';
-          const showTime = idx === messages.length - 1 || messages[idx + 1]?.role !== msg.role;
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto flex max-w-2xl flex-col gap-3 px-4 py-5">
+          {messages.map((msg, idx) => {
+            const isUser = msg.role === 'user';
+            const showTime = idx === messages.length - 1 || messages[idx + 1]?.role !== msg.role;
 
-          return (
-            <div
-              key={msg.id}
-              className={cn(
-                'flex flex-col gap-0.5 animate-fade-in',
-                isUser ? 'items-end' : 'items-start'
-              )}
-            >
-              <div className={isUser ? 'chat-bubble-user' : 'chat-bubble-ai'}>
-                <MessageContent content={msg.content} />
+            return (
+              <div
+                key={msg.id}
+                className={cn(
+                  'chat-message-enter flex flex-col gap-1',
+                  isUser ? 'items-end' : 'items-start'
+                )}
+              >
+                {!isUser && (
+                  <span className="px-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                    Waiter
+                  </span>
+                )}
+                <div className={isUser ? 'chat-bubble-user' : 'chat-bubble-ai'}>
+                  <MessageContent content={msg.content} />
+                </div>
+                {showTime && (
+                  <span className="px-1 text-[10px] text-muted-foreground">
+                    {formatTime(msg.createdAt ?? new Date())}
+                  </span>
+                )}
               </div>
-              {showTime && (
-                <span className="text-[10px] text-muted-foreground px-1">
-                  {formatTime(msg.createdAt ?? new Date())}
-                </span>
-              )}
+            );
+          })}
+
+          {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
+            <div className="chat-message-enter flex flex-col items-start gap-1">
+              <span className="px-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                Waiter
+              </span>
+              <div className="chat-bubble-ai flex items-center gap-1.5 py-3.5 px-4">
+                <div className="typing-dot" />
+                <div className="typing-dot" />
+                <div className="typing-dot" />
+              </div>
             </div>
-          );
-        })}
+          )}
 
-        {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
-          <div className="flex items-start animate-fade-in">
-            <div className="chat-bubble-ai flex items-center gap-1 py-3 px-4">
-              <div className="typing-dot" />
-              <div className="typing-dot" />
-              <div className="typing-dot" />
+          {error && (
+            <div className="rounded-xl bg-destructive/10 px-4 py-2.5 text-xs text-destructive">
+              {error.message || 'Something went wrong. Please try again.'}
             </div>
-          </div>
-        )}
+          )}
 
-        {error && (
-          <div className="px-4 py-2 text-xs text-destructive bg-destructive/10 rounded-xl mx-4">
-            {error.message || 'Something went wrong. Please try again.'}
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
-      <div className="px-3 py-3 bg-[hsl(var(--chat-bg))] border-t border-border/40">
-        <form
-          onSubmit={handleSubmit}
-          className="flex items-center gap-2 bg-card rounded-2xl px-4 py-2.5 shadow-md border border-border/50"
-        >
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={handleInputChange}
-            placeholder="Type a message…"
-            disabled={isLoading}
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground disabled:opacity-50"
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !input.trim() || !sessionId}
-            className={cn(
-              'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all',
-              input.trim() && !isLoading && sessionId
-                ? 'bg-primary text-white shadow-md shadow-primary/30 hover:opacity-90'
-                : 'bg-muted text-muted-foreground'
-            )}
+      <div className="border-t border-border/50 bg-card/80 backdrop-blur-md">
+        <div className="mx-auto max-w-2xl px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <form
+            onSubmit={handleSubmit}
+            className="flex items-center gap-2 rounded-2xl border border-border bg-background px-3 py-2 shadow-sm"
           >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-3.5 h-3.5" />
-            )}
-          </button>
-        </form>
-
-        <p className="text-center text-[10px] text-muted-foreground mt-2">
-          Powered by <span className="font-semibold text-primary">FastClose AI</span>
-        </p>
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={handleInputChange}
+              placeholder={table ? 'Ask about the menu or place an order…' : 'Ask about the menu or place an order…'}
+              disabled={isLoading}
+              className="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm outline-none placeholder:text-muted-foreground disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              disabled={isLoading || !input.trim() || !sessionId}
+              className={cn(
+                'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all',
+                input.trim() && !isLoading && sessionId
+                  ? 'bg-primary text-primary-foreground hover:opacity-90'
+                  : 'bg-muted text-muted-foreground'
+              )}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </form>
+          <p className="mt-2 text-center text-[10px] text-muted-foreground">
+            Powered by <span className="font-semibold text-primary">FastClose</span>
+          </p>
+        </div>
       </div>
     </div>
   );
 }
 
-/** Normalize stream/markdown quirks for the plain-text chat bubble. */
 function normalizeChatText(raw: string): string {
   let text = raw;
-  // If a bad stream protocol leaked JSON escapes, turn them into real breaks.
   if (text.includes('\\n') && !text.includes('\n')) {
     text = text.replace(/\\n/g, '\n');
   }
-  // Strip markdown headings the model sometimes still emits.
   text = text.replace(/^#{1,6}\s+/gm, '');
   return text;
 }

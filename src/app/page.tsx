@@ -1,372 +1,347 @@
 import Link from 'next/link';
-import { Zap, MessageSquare, Send, ArrowRight, CheckCircle2, TrendingUp, Clock, DollarSign, Shield, Star, ChevronRight } from 'lucide-react';
+import { ArrowRight, Zap } from 'lucide-react';
 
-const PAIN_STATS = [
-  { stat: '62%', label: 'of customers leave if not answered within 1 hour' },
-  { stat: '$1.6T', label: 'lost annually by businesses due to poor customer service' },
-  { stat: '40hrs', label: 'per week your team spends answering repetitive questions' },
+const CHANNELS = [
+  {
+    title: 'Website chat',
+    desc: 'A guest opens your widget, browses the menu, and places a delivery order — phone and address collected by the agent.',
+  },
+  {
+    title: 'Table QR',
+    desc: 'Print a code per table. Guests scan, chat with an AI waiter, and order for that table — no phone or address needed.',
+  },
+  {
+    title: 'Telegram',
+    desc: 'The same menu-aware agent on Telegram. Confirmed orders land in your dashboard and ping your kitchen chat.',
+  },
 ];
 
-const BENEFITS = [
-  { icon: Clock, title: 'Works 24/7 — while you sleep', desc: 'Your AI agent never takes a day off. Customers in different time zones get instant answers at 3am, on weekends, on holidays.' },
-  { icon: DollarSign, title: 'Cut support costs by 60%', desc: 'One AI agent handles hundreds of conversations simultaneously. No salary, no sick days, no training costs. Pay a flat monthly fee.' },
-  { icon: TrendingUp, title: 'Never miss an order again', desc: 'When a guest is ready to order at midnight, your agent is there to take it. Every conversation can become a confirmed order.' },
-  { icon: Shield, title: 'Trained on your exact catalog', desc: 'Unlike generic chatbots, FastClose learns your products, prices, and policies. It only says what you tell it to say.' },
-];
-
-const HOW_IT_WORKS = [
-  { step: '01', title: 'Upload your catalog', desc: 'Paste your products, services, or FAQ as JSON or plain text. Takes 2 minutes.' },
-  { step: '02', title: 'AI learns your business', desc: 'We generate semantic embeddings of every product so your agent understands context, not just keywords.' },
-  { step: '03', title: 'Deploy everywhere', desc: 'Embed the chat widget on your website and connect a Telegram bot. One setup, two channels.' },
-  { step: '04', title: 'Watch orders come in', desc: 'Confirmed orders appear in your dashboard (and Telegram). Wake up to a list of new orders ready to fulfill.' },
+const STEPS = [
+  {
+    n: '01',
+    title: 'Add your menu',
+    desc: 'Import dishes with names, prices, and categories. FastClose embeds each item so the agent answers from your real catalog.',
+  },
+  {
+    n: '02',
+    title: 'Open your channels',
+    desc: 'Share the web chat link, print table QR codes, and connect Telegram. One menu powers all three.',
+  },
+  {
+    n: '03',
+    title: 'Take orders',
+    desc: 'The agent helps guests choose, builds the cart, confirms the order, and notifies you instantly.',
+  },
 ];
 
 const PLANS = [
   {
     name: 'Starter',
     price: '$29',
-    period: '/mo',
-    desc: 'Perfect for small businesses just getting started.',
-    features: ['1 AI agent', 'Up to 500 conversations/mo', 'Web chat widget', 'Order dashboard', 'Email support'],
-    cta: 'Start free trial',
-    highlight: false,
+    desc: 'One location getting started with AI ordering.',
+    features: ['Web chat widget', 'Menu sync', 'Order dashboard', 'Up to 500 chats / month'],
   },
   {
     name: 'Growth',
     price: '$79',
-    period: '/mo',
-    desc: 'For growing businesses that want more reach.',
-    features: ['1 AI agent', 'Unlimited conversations', 'Web chat + Telegram bot', 'Orders & table QR', 'Multilingual (10+ languages)', 'Priority support'],
-    cta: 'Start free trial',
-    highlight: true,
-    badge: 'Most popular',
+    desc: 'Delivery, dine-in QR, and Telegram in one place.',
+    features: ['Everything in Starter', 'Table QR codes', 'Telegram bot', 'Unlimited chats', 'Armenian · Russian · English'],
+    featured: true,
   },
   {
     name: 'Scale',
     price: '$199',
-    period: '/mo',
-    desc: 'For teams managing multiple brands or locations.',
-    features: ['5 AI agents', 'Unlimited conversations', 'Web chat + Telegram + API', 'Advanced analytics', 'Custom AI personality', 'Dedicated onboarding'],
-    cta: 'Contact sales',
-    highlight: false,
+    desc: 'For groups expanding across locations.',
+    features: ['Up to 5 locations', 'Priority support', 'Custom agent tone', 'Onboarding help'],
   },
-];
-
-const TESTIMONIALS = [
-  { name: 'Arman K.', role: 'Owner, Elektronika Store', quote: 'We used to miss 30+ customer inquiries every night. Now our AI handles everything and we wake up to confirmed orders ready to fulfill.' },
-  { name: 'Narine M.', role: 'CEO, Narine Beauty', quote: 'Our customers write in Armenian, Russian, and English. FastClose answers perfectly in all three. Our response time went from 6 hours to 0.' },
-  { name: 'David P.', role: 'Founder, TechGear AM', quote: 'ROI in the first week. The cost of one month subscription is less than 2 hours of a support agent. It just works.' },
 ];
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-background overflow-x-hidden">
-
-      {/* ── Nav ─────────────────────────────────────────────── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-md shadow-primary/40">
-              <Zap className="w-4 h-4  " />
-            </div>
-            <span className="font-bold text-lg" style={{ fontFamily: 'Syne, sans-serif' }}>
-              FastClose<span className="text-primary"> AI</span>
+    <main className="min-h-screen bg-background text-foreground overflow-x-hidden">
+      {/* Nav */}
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[hsl(160_18%_8%/0.72)] backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5 md:px-8">
+          <Link href="/" className="flex items-center gap-2.5 text-white">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+              <Zap className="h-4 w-4 text-primary-foreground" />
             </span>
-          </div>
-          <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
-            <a href="#how-it-works" className="hover:text-foreground transition-colors">How it works</a>
-            <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
-            <a href="#testimonials" className="hover:text-foreground transition-colors">Stories</a>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link href="/auth/login" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hidden md:block">
+            <span className="text-lg font-bold tracking-tight" style={{ fontFamily: 'Syne, sans-serif' }}>
+              FastClose
+            </span>
+          </Link>
+          <div className="flex items-center gap-5">
+            <nav className="hidden items-center gap-6 text-sm text-white/75 md:flex">
+              <a href="#channels" className="transition hover:text-white">Channels</a>
+              <a href="#how" className="transition hover:text-white">How it works</a>
+              <a href="#pricing" className="transition hover:text-white">Pricing</a>
+            </nav>
+            <Link href="/auth/login" className="hidden text-sm text-white/75 transition hover:text-white sm:inline">
               Sign in
             </Link>
-            <Link href="/auth/register" className="text-sm font-semibold bg-primary   px-4 py-2 rounded-xl hover:opacity-90 transition shadow-md shadow-primary/30">
-              Try free →
+            <Link
+              href="/auth/register"
+              className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+            >
+              Start free
             </Link>
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* ── Hero ────────────────────────────────────────────── */}
-      <section className="pt-36 pb-24 px-6 text-center relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
-        <div className="max-w-4xl mx-auto relative space-y-8">
-          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-widest">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            AI Customer Support for B2B
-          </div>
+      {/* Hero — one composition, brand-first, full-bleed visual */}
+      <section className="relative min-h-[100svh] flex flex-col justify-end overflow-hidden">
+        <div className="absolute inset-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=2400&q=80"
+            alt=""
+            className="landing-hero-media h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[hsl(160_18%_8%)] via-[hsl(160_16%_10%/0.72)] to-[hsl(160_14%_12%/0.35)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsl(152_50%_35%/0.25),transparent_50%)]" />
+        </div>
 
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.04]" style={{ fontFamily: 'Syne, sans-serif' }}>
-            Your best employee<br />
-            <span className="text-primary">never clocks out.</span>
+        <div className="relative z-10 mx-auto w-full max-w-6xl px-5 pb-16 pt-32 md:px-8 md:pb-24">
+          <p
+            className="landing-rise text-5xl font-extrabold tracking-tight text-white sm:text-6xl md:text-8xl"
+            style={{ fontFamily: 'Syne, sans-serif' }}
+          >
+            FastClose
+          </p>
+          <h1
+            className="landing-rise landing-rise-delay-1 mt-4 max-w-2xl text-2xl font-semibold leading-snug text-white/95 sm:text-3xl md:text-4xl"
+            style={{ fontFamily: 'Syne, sans-serif' }}
+          >
+            The AI waiter that takes orders for your café.
           </h1>
+          <p className="landing-rise landing-rise-delay-2 mt-4 max-w-xl text-base leading-relaxed text-white/75 md:text-lg">
+            Menu-aware chat in Armenian, Russian, and English — for delivery, table QR dine-in, and Telegram.
+          </p>
+          <div className="landing-rise landing-rise-delay-3 mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Link
+              href="/auth/register"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground transition hover:opacity-90"
+            >
+              Start free trial
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <a
+              href="#how"
+              className="inline-flex items-center justify-center rounded-xl border border-white/25 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/10"
+            >
+              See how it works
+            </a>
+          </div>
+          <p className="landing-rise landing-rise-delay-4 mt-5 text-xs text-white/50">
+            Built for restaurants in Armenia · Setup in minutes · Cancel anytime
+          </p>
+        </div>
+      </section>
 
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            FastClose AI answers customer questions, takes orders, and notifies your kitchen — in any language, on your website, table QR, and Telegram, <span className="text-foreground font-medium">24 hours a day</span>.
+      {/* Channels */}
+      <section id="channels" className="border-b border-border bg-background px-5 py-24 md:px-8">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Where guests order</p>
+          <h2
+            className="mt-3 max-w-xl text-3xl font-extrabold tracking-tight md:text-4xl"
+            style={{ fontFamily: 'Syne, sans-serif' }}
+          >
+            One agent. Three ways to order.
+          </h2>
+          <p className="mt-4 max-w-lg text-muted-foreground">
+            Guests talk to a waiter that actually knows your menu — prices, names, and what you do not serve.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/auth/register" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary   px-8 py-4 rounded-xl font-bold text-base hover:opacity-90 transition shadow-xl shadow-primary/30">
-              Start free — no credit card <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link href="/chat/00000000-0000-0000-0000-000000000001" target="_blank"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 border border-border px-8 py-4 rounded-xl font-semibold text-base hover:bg-muted transition">
-              <MessageSquare className="w-4 h-4" /> See live demo
-            </Link>
-          </div>
-
-          <p className="text-xs text-muted-foreground">14-day free trial · Cancel anytime · Setup in under 5 minutes</p>
-        </div>
-      </section>
-
-      {/* ── Pain stats ──────────────────────────────────────── */}
-      <section className="py-12 px-6 border-y border-border bg-muted/30">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-          {PAIN_STATS.map(({ stat, label }) => (
-            <div key={stat} className="text-center space-y-2">
-              <p className="text-4xl font-extrabold text-primary" style={{ fontFamily: 'Syne, sans-serif' }}>{stat}</p>
-              <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">{label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Problem → Solution ──────────────────────────────── */}
-      <section className="py-24 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Problem */}
-            <div className="bg-destructive/5 border border-destructive/20 rounded-2xl p-8 space-y-5">
-              <p className="text-xs font-bold uppercase tracking-widest text-destructive">The problem today</p>
-              <h2 className="text-2xl font-bold leading-snug" style={{ fontFamily: 'Syne, sans-serif' }}>
-                You're losing money every night you're not online
-              </h2>
-              <ul className="space-y-3">
-                {[
-                  'A customer asks about a product at 11pm — no reply. They buy from a competitor.',
-                  'Your support team spends 6 hours a day on the same 10 questions.',
-                  'You hire more staff to keep up. Costs grow faster than revenue.',
-                  'Orders fall through the cracks because nobody was there to take them.',
-                ].map(item => (
-                  <li key={item} className="flex items-start gap-3 text-sm text-muted-foreground">
-                    <span className="w-4 h-4 rounded-full border-2 border-destructive/40 flex-shrink-0 mt-0.5" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Solution */}
-            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-8 space-y-5">
-              <p className="text-xs font-bold uppercase tracking-widest text-primary">The FastClose solution</p>
-              <h2 className="text-2xl font-bold leading-snug" style={{ fontFamily: 'Syne, sans-serif' }}>
-                An AI agent that knows your business inside out
-              </h2>
-              <ul className="space-y-3">
-                {[
-                  'Trained on your exact products, prices, and policies — not generic knowledge.',
-                  'Handles unlimited conversations simultaneously, in any language.',
-                  'Takes delivery and table orders, then notifies you instantly.',
-                  'Deploys on your website, table QR codes, AND Telegram.',
-                ].map(item => (
-                  <li key={item} className="flex items-start gap-3 text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Benefits ────────────────────────────────────────── */}
-      <section className="py-24 px-6 bg-muted/20">
-        <div className="max-w-5xl mx-auto space-y-16">
-          <div className="text-center space-y-4">
-            <h2 className="text-4xl font-extrabold" style={{ fontFamily: 'Syne, sans-serif' }}>
-              What changes when you deploy FastClose
-            </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">Real outcomes, not features.</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            {BENEFITS.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="bg-card border border-border rounded-2xl p-6 flex gap-4 hover:shadow-md transition-shadow">
-                <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-5 h-5 text-primary" />
-                </div>
-                <div className="space-y-1.5">
-                  <p className="font-bold text-base" style={{ fontFamily: 'Syne, sans-serif' }}>{title}</p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
-                </div>
+          <div className="mt-14 grid gap-10 md:grid-cols-3 md:gap-12">
+            {CHANNELS.map((item, i) => (
+              <div key={item.title} className="relative">
+                <span
+                  className="text-5xl font-extrabold text-primary/15"
+                  style={{ fontFamily: 'Syne, sans-serif' }}
+                >
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <h3 className="mt-2 text-xl font-bold" style={{ fontFamily: 'Syne, sans-serif' }}>
+                  {item.title}
+                </h3>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── How it works ────────────────────────────────────── */}
-      <section id="how-it-works" className="py-24 px-6">
-        <div className="max-w-4xl mx-auto space-y-16">
-          <div className="text-center space-y-4">
-            <h2 className="text-4xl font-extrabold" style={{ fontFamily: 'Syne, sans-serif' }}>
-              Up and running in 5 minutes
-            </h2>
-            <p className="text-muted-foreground">No developers needed. No complex setup.</p>
-          </div>
+      {/* How it works */}
+      <section id="how" className="relative overflow-hidden px-5 py-24 md:px-8">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,hsl(var(--muted)/0.65),transparent_40%,hsl(var(--muted)/0.4))]" />
+        <div className="relative mx-auto max-w-6xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">How it works</p>
+          <h2
+            className="mt-3 max-w-xl text-3xl font-extrabold tracking-tight md:text-4xl"
+            style={{ fontFamily: 'Syne, sans-serif' }}
+          >
+            From menu to confirmed order.
+          </h2>
+          <p className="mt-4 max-w-lg text-muted-foreground">
+            No scripts to write. No developers required. Your catalog becomes the agent&apos;s knowledge.
+          </p>
 
-          <div className="space-y-4">
-            {HOW_IT_WORKS.map(({ step, title, desc }, i) => (
-              <div key={step} className="flex gap-6 items-start group">
-                <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <span className="text-primary font-extrabold text-sm" style={{ fontFamily: 'Syne, sans-serif' }}>{step}</span>
-                </div>
-                <div className="flex-1 pt-3 space-y-1">
-                  <p className="font-bold text-lg" style={{ fontFamily: 'Syne, sans-serif' }}>{title}</p>
-                  <p className="text-muted-foreground text-sm leading-relaxed">{desc}</p>
-                </div>
-                {i < HOW_IT_WORKS.length - 1 && (
-                  <div className="hidden md:block absolute ml-7 mt-14 w-px h-4 bg-border" />
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center">
-            <Link href="/auth/register" className="inline-flex items-center gap-2 bg-primary   px-8 py-4 rounded-xl font-bold hover:opacity-90 transition shadow-lg shadow-primary/25">
-              Get started now <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Testimonials ────────────────────────────────────── */}
-      <section id="testimonials" className="py-24 px-6 bg-muted/20">
-        <div className="max-w-5xl mx-auto space-y-16">
-          <div className="text-center space-y-4">
-            <h2 className="text-4xl font-extrabold" style={{ fontFamily: 'Syne, sans-serif' }}>
-              Businesses already saving time & money
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map(({ name, role, quote }) => (
-              <div key={name} className="bg-card border border-border rounded-2xl p-6 space-y-4 flex flex-col">
-                <div className="flex gap-0.5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
-                  ))}
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed flex-1">"{quote}"</p>
+          <ol className="mt-16 space-y-12 md:space-y-16">
+            {STEPS.map(step => (
+              <li key={step.n} className="grid gap-4 md:grid-cols-[5rem_1fr] md:gap-10">
+                <span
+                  className="text-3xl font-extrabold text-primary md:text-4xl"
+                  style={{ fontFamily: 'Syne, sans-serif' }}
+                >
+                  {step.n}
+                </span>
                 <div>
-                  <p className="font-semibold text-sm">{name}</p>
-                  <p className="text-xs text-muted-foreground">{role}</p>
+                  <h3 className="text-xl font-bold md:text-2xl" style={{ fontFamily: 'Syne, sans-serif' }}>
+                    {step.title}
+                  </h3>
+                  <p className="mt-2 max-w-2xl text-muted-foreground leading-relaxed">{step.desc}</p>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 
-      {/* ── Pricing ─────────────────────────────────────────── */}
-      <section id="pricing" className="py-24 px-6">
-        <div className="max-w-5xl mx-auto space-y-16">
-          <div className="text-center space-y-4">
-            <h2 className="text-4xl font-extrabold" style={{ fontFamily: 'Syne, sans-serif' }}>
-              Simple, honest pricing
+      {/* Promise strip */}
+      <section className="border-y border-border bg-[hsl(160_18%_10%)] px-5 py-20 text-white md:px-8">
+        <div className="mx-auto flex max-w-6xl flex-col gap-10 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-xl">
+            <h2 className="text-3xl font-extrabold tracking-tight md:text-4xl" style={{ fontFamily: 'Syne, sans-serif' }}>
+              Honest about the menu.
+              <br />
+              Fast about the order.
             </h2>
-            <p className="text-muted-foreground">Less than the cost of one support hour. Cancel anytime.</p>
+            <p className="mt-4 text-white/65 leading-relaxed">
+              FastClose only suggests items from your catalog. Guests get clear prices in AMD, help choosing, and a confirmation
+              your kitchen can act on — day or night.
+            </p>
           </div>
+          <ul className="space-y-3 text-sm text-white/80">
+            {[
+              'Armenian script, transliteration, Russian, English',
+              'Delivery orders with phone + address',
+              'Dine-in orders tied to a table ID',
+              'Telegram alerts when an order is confirmed',
+            ].map(line => (
+              <li key={line} className="flex items-start gap-3">
+                <span className="landing-dot mt-1.5 h-1.5 w-1.5 shrink-0 rounded-sm bg-primary" />
+                {line}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
 
-          <div className="grid md:grid-cols-3 gap-6 items-start">
-            {PLANS.map(({ name, price, period, desc, features, cta, highlight, badge }) => (
-              <div key={name} className={`relative rounded-2xl p-7 flex flex-col gap-6 border ${
-                highlight
-                  ? 'bg-primary   border-primary shadow-2xl shadow-primary/30 scale-[1.02]'
-                  : 'bg-card border-border'
-              }`}>
-                {badge && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-amber-900 text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
-                    {badge}
-                  </div>
-                )}
-                <div className="space-y-1">
-                  <p className={`text-xs font-bold uppercase tracking-widest ${highlight ? ' /70' : 'text-muted-foreground'}`}>{name}</p>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-extrabold" style={{ fontFamily: 'Syne, sans-serif' }}>{price}</span>
-                    <span className={`text-sm ${highlight ? ' /70' : 'text-muted-foreground'}`}>{period}</span>
-                  </div>
-                  <p className={`text-sm ${highlight ? ' /80' : 'text-muted-foreground'}`}>{desc}</p>
-                </div>
+      {/* Pricing */}
+      <section id="pricing" className="px-5 py-24 md:px-8">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Pricing</p>
+          <h2
+            className="mt-3 text-3xl font-extrabold tracking-tight md:text-4xl"
+            style={{ fontFamily: 'Syne, sans-serif' }}
+          >
+            Simple plans for busy kitchens.
+          </h2>
+          <p className="mt-4 max-w-lg text-muted-foreground">
+            Less than a few hours of phone staff. 14-day free trial on every plan.
+          </p>
 
-                <ul className="space-y-2.5 flex-1">
-                  {features.map(f => (
-                    <li key={f} className="flex items-center gap-2.5 text-sm">
-                      <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${highlight ? ' /80' : 'text-primary'}`} />
-                      <span className={highlight ? ' /90' : ''}>{f}</span>
+          <div className="mt-14 grid gap-6 md:grid-cols-3">
+            {PLANS.map(plan => (
+              <div
+                key={plan.name}
+                className={
+                  plan.featured
+                    ? 'flex flex-col border border-primary bg-primary p-7 text-primary-foreground'
+                    : 'flex flex-col border border-border bg-card p-7'
+                }
+              >
+                <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${plan.featured ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                  {plan.name}
+                </p>
+                <p className="mt-3 flex items-baseline gap-1">
+                  <span className="text-4xl font-extrabold" style={{ fontFamily: 'Syne, sans-serif' }}>
+                    {plan.price}
+                  </span>
+                  <span className={plan.featured ? 'text-primary-foreground/70' : 'text-muted-foreground'}>/mo</span>
+                </p>
+                <p className={`mt-2 text-sm leading-relaxed ${plan.featured ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                  {plan.desc}
+                </p>
+                <ul className="mt-8 flex-1 space-y-2.5">
+                  {plan.features.map(f => (
+                    <li key={f} className={`text-sm ${plan.featured ? 'text-primary-foreground/90' : 'text-foreground'}`}>
+                      {f}
                     </li>
                   ))}
                 </ul>
-
-                <Link href="/auth/register"
-                      className={`w-full text-center py-3 rounded-xl font-bold text-sm transition ${
-                        highlight
-                          ? 'bg-white text-primary hover:bg-white/90'
-                          : 'bg-primary   hover:opacity-90 shadow-md shadow-primary/25'
-                      }`}>
-                  {cta}
+                <Link
+                  href="/auth/register"
+                  className={
+                    plan.featured
+                      ? 'mt-8 block rounded-xl bg-card py-3 text-center text-sm font-bold text-foreground transition hover:opacity-95'
+                      : 'mt-8 block rounded-xl bg-primary py-3 text-center text-sm font-bold text-primary-foreground transition hover:opacity-90'
+                  }
+                >
+                  Start free trial
                 </Link>
               </div>
             ))}
           </div>
+        </div>
+      </section>
 
-          <p className="text-center text-sm text-muted-foreground">
-            All plans include a <strong>14-day free trial</strong>. No credit card required to start.
+      {/* Final CTA */}
+      <section className="relative overflow-hidden px-5 py-28 md:px-8">
+        <div className="absolute inset-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=2000&q=80"
+            alt=""
+            className="h-full w-full object-cover opacity-40"
+          />
+          <div className="absolute inset-0 bg-[hsl(160_18%_8%/0.88)]" />
+        </div>
+        <div className="relative mx-auto max-w-3xl text-center text-white">
+          <h2 className="text-3xl font-extrabold tracking-tight md:text-5xl" style={{ fontFamily: 'Syne, sans-serif' }}>
+            Put an AI waiter on every table.
+          </h2>
+          <p className="mx-auto mt-5 max-w-xl text-white/65 leading-relaxed">
+            Upload tonight&apos;s menu. Share a link or print QR codes. Take your first AI order before the dinner rush.
           </p>
+          <Link
+            href="/auth/register"
+            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground transition hover:opacity-90"
+          >
+            Create your account
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </section>
 
-      {/* ── Final CTA ───────────────────────────────────────── */}
-      <section className="py-24 px-6">
-        <div className="max-w-3xl mx-auto text-center space-y-8">
-          <div className="bg-primary/5 border border-primary/15 rounded-3xl p-12 space-y-6">
-            <h2 className="text-4xl md:text-5xl font-extrabold" style={{ fontFamily: 'Syne, sans-serif' }}>
-              Stop losing customers <br className="hidden md:block" />while you sleep.
-            </h2>
-            <p className="text-muted-foreground text-lg">
-              Join businesses that never miss a customer inquiry. Set up in 5 minutes, see results tonight.
-            </p>
-            <Link href="/auth/register"
-                  className="inline-flex items-center gap-2 bg-primary   px-10 py-4 rounded-xl font-bold text-lg hover:opacity-90 transition shadow-xl shadow-primary/30">
-              Start your free trial <ArrowRight className="w-5 h-5" />
-            </Link>
-            <p className="text-xs text-muted-foreground">14 days free · No credit card · Cancel anytime</p>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Footer ──────────────────────────────────────────── */}
-      <footer className="border-t border-border px-6 py-10">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <footer className="border-t border-border px-5 py-10 md:px-8">
+        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-primary flex items-center justify-center">
-              <Zap className="w-3.5 h-3.5  " />
-            </div>
-            <span className="font-bold text-sm" style={{ fontFamily: 'Syne, sans-serif' }}>
-              FastClose<span className="text-primary"> AI</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
+              <Zap className="h-3.5 w-3.5 text-primary-foreground" />
+            </span>
+            <span className="font-bold" style={{ fontFamily: 'Syne, sans-serif' }}>
+              FastClose
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">© 2025 FastClose AI. All rights reserved.</p>
+          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} FastClose AI · AI ordering for restaurants</p>
           <div className="flex gap-5 text-xs text-muted-foreground">
-            <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
-            <a href="#" className="hover:text-foreground transition-colors">Terms</a>
-            <Link href="/auth/login" className="hover:text-foreground transition-colors">Sign in</Link>
+            <Link href="/auth/login" className="transition hover:text-foreground">Sign in</Link>
+            <Link href="/auth/register" className="transition hover:text-foreground">Register</Link>
           </div>
         </div>
       </footer>
-
     </main>
   );
 }

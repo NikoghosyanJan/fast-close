@@ -62,7 +62,7 @@
   }
 
   .chat-bubble-ai {
-    @apply chat-bubble rounded-bl-sm shadow-sm;
+    @apply chat-bubble rounded-bl-sm border border-border/60 shadow-sm;
     background-color: hsl(var(--bubble-ai));
     color: hsl(var(--bubble-ai-fg));
   }
@@ -85,3 +85,47 @@
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
+
+/* Landing page motion */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes soft-pan {
+  from { transform: scale(1.08) translate3d(0, 0, 0); }
+  to { transform: scale(1.02) translate3d(-1.5%, 1%, 0); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.85; }
+}
+
+.landing-rise {
+  animation: rise-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-rise-delay-1 { animation-delay: 0.12s; }
+.landing-rise-delay-2 { animation-delay: 0.24s; }
+.landing-rise-delay-3 { animation-delay: 0.36s; }
+.landing-rise-delay-4 { animation-delay: 0.48s; }
+
+.landing-hero-media {
+  animation: soft-pan 22s ease-in-out alternate infinite;
+}
+
+.landing-dot {
+  animation: pulse-soft 2.8s ease-in-out infinite;
+}
+
+/* Chat shell */
+.chat-shell {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, hsl(var(--primary) / 0.08), transparent 55%),
+    hsl(var(--chat-bg));
+}
+
+.chat-message-enter {
+  animation: fade-in 0.35s ease-out both;
+}
