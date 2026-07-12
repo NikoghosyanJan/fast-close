@@ -1,10 +1,11 @@
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import QRCode from 'qrcode';
+import { getAppBaseUrl, tableChatUrl } from '@/lib/app-url';
 export const dynamic = 'force-dynamic';
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: { tableId: string } }
 ) {
   const session = await auth();
@@ -22,8 +23,9 @@ export async function GET(
   });
   if (!table) return new Response('Table not found', { status: 404 });
 
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
-  const chatUrl = `${appUrl}/chat/${business.id}/table/${table.id}`;
+  const appUrl = getAppBaseUrl(req);
+  const chatUrl = tableChatUrl(appUrl, business.id, table.id);
+  console.log('[QR] encoding table chat URL:', chatUrl);
 
   const png = await QRCode.toBuffer(chatUrl, {
     type: 'png',
@@ -36,7 +38,9 @@ export async function GET(
     headers: {
       'Content-Type': 'image/png',
       'Content-Disposition': `inline; filename="table-${table.number}-qr.png"`,
-      'Cache-Control': 'private, max-age=60',
+      // Avoid stale QR images that encoded an old host (e.g. vercel.app)
+      'Cache-Control': 'no-store',
+      'X-Chat-Url': chatUrl,
     },
   });
 }

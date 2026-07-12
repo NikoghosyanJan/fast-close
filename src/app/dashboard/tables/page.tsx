@@ -274,14 +274,14 @@ export default function TablesPage() {
             <div className="space-y-3 text-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={`/api/tables/${selected.id}/qr`}
+                src={`/api/tables/${selected.id}/qr?v=${selected.id}`}
                 alt={`QR for ${selected.name}`}
                 className="w-full max-w-[220px] mx-auto rounded-xl border border-border bg-card"
               />
               <p className="font-medium text-sm">{selected.name}</p>
               <p className="text-xs text-muted-foreground break-all">{tableUrl(selected.id)}</p>
               <a
-                href={`/api/tables/${selected.id}/qr`}
+                href={`/api/tables/${selected.id}/qr?v=${selected.id}`}
                 download={`table-${selected.number}-qr.png`}
                 className="inline-flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-medium"
               >
