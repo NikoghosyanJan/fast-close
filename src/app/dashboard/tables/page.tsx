@@ -30,9 +30,8 @@ export default function TablesPage() {
   const [editNumber, setEditNumber] = useState('');
   const [qrTableId, setQrTableId] = useState<string | null>(null);
 
-  const appUrl = typeof window !== 'undefined'
-    ? window.location.origin
-    : (process.env.NEXT_PUBLIC_APP_URL || '');
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '')
+    || (typeof window !== 'undefined' ? window.location.origin : '');
 
   const fetchTables = async () => {
     setLoading(true);

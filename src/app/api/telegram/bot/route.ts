@@ -1,14 +1,14 @@
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
+import { getAppBaseUrl } from '@/lib/app-url';
 export const dynamic = 'force-dynamic';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-app.vercel.app';
-
 async function setWebhook(token: string, businessId: string) {
+  const appUrl = getAppBaseUrl();
   const res = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url: `${APP_URL}/api/telegram/webhook/${businessId}`, allowed_updates: ['message'] }),
+    body: JSON.stringify({ url: `${appUrl}/api/telegram/webhook/${businessId}`, allowed_updates: ['message'] }),
   });
   return res.json();
 }

@@ -5,7 +5,7 @@ import { getAppBaseUrl, tableChatUrl } from '@/lib/app-url';
 export const dynamic = 'force-dynamic';
 
 export async function GET(
-  req: Request,
+  _req: Request,
   { params }: { params: { tableId: string } }
 ) {
   const session = await auth();
@@ -23,7 +23,7 @@ export async function GET(
   });
   if (!table) return new Response('Table not found', { status: 404 });
 
-  const appUrl = getAppBaseUrl(req);
+  const appUrl = getAppBaseUrl();
   const chatUrl = tableChatUrl(appUrl, business.id, table.id);
   console.log('[QR] encoding table chat URL:', chatUrl);
 
