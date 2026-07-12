@@ -33,12 +33,16 @@ export const AGENT_TOOLS: ChatCompletionTool[] = [
     function: {
       name: 'add_to_cart',
       description:
-        'Add a menu item to the customer cart. Requires a valid product_id from search_menu or the menu block.',
+        'Add a menu item to the customer cart. Requires a valid product_id from search_menu or the menu block. Optional notes for kitchen requests (e.g. no onion, extra spicy).',
       parameters: {
         type: 'object',
         properties: {
           product_id: { type: 'string', description: 'Product UUID from the menu' },
           quantity: { type: 'integer', description: 'Quantity to add (default 1)', minimum: 1 },
+          notes: {
+            type: 'string',
+            description: 'Optional prep note for this item (e.g. "without onion", "extra sauce")',
+          },
         },
         required: ['product_id'],
       },
@@ -48,14 +52,23 @@ export const AGENT_TOOLS: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'update_cart_item',
-      description: 'Update quantity for a cart item. Set quantity to 0 to remove the item.',
+      description:
+        'Update quantity and/or prep notes for a cart item. Set quantity to 0 to remove the item. Pass notes to set or replace the kitchen note; pass empty string to clear notes.',
       parameters: {
         type: 'object',
         properties: {
           product_id: { type: 'string' },
-          quantity: { type: 'integer', minimum: 0 },
+          quantity: {
+            type: 'integer',
+            minimum: 0,
+            description: 'New quantity. Omit to leave quantity unchanged when only updating notes.',
+          },
+          notes: {
+            type: 'string',
+            description: 'Prep note for this item. Empty string clears the note.',
+          },
         },
-        required: ['product_id', 'quantity'],
+        required: ['product_id'],
       },
     },
   },

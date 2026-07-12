@@ -24,6 +24,8 @@ export interface CartItem {
   name: string;
   quantity: number;
   unitPrice: number;
+  /** Kitchen / prep note e.g. "no onion" — shown in admin + Telegram */
+  notes?: string;
 }
 
 export interface AgentMessage {

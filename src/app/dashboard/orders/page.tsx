@@ -5,7 +5,7 @@ import { ShoppingBag, Phone, MapPin, Clock, RefreshCw, Armchair } from 'lucide-r
 import { toast } from 'sonner';
 export const dynamic = 'force-dynamic';
 
-interface OrderItem { name: string; quantity: number; price: number; }
+interface OrderItem { name: string; quantity: number; price: number; notes?: string; }
 interface Order {
   id: string;
   orderType: 'delivery' | 'dine_in';
@@ -16,6 +16,7 @@ interface Order {
   items: OrderItem[];
   totalPrice: number;
   status: 'NEW' | 'CONFIRMED' | 'PREPARING' | 'DELIVERED' | 'CANCELLED';
+  notes: string | null;
   createdAt: string;
 }
 
@@ -176,14 +177,26 @@ export default function OrdersPage() {
                 </div>
 
                 {/* Items */}
-                <div className="bg-muted/50 rounded-xl px-4 py-3 space-y-1.5">
+                <div className="bg-muted/50 rounded-xl px-4 py-3 space-y-2">
                   {order.items.map((item, i) => (
-                    <div key={i} className="flex items-center justify-between text-sm">
-                      <span>{item.name} <span className="text-muted-foreground">×{item.quantity}</span></span>
-                      <span className="font-medium">{(Number(item.price) * item.quantity).toLocaleString()} AMD</span>
+                    <div key={i} className="flex items-start justify-between gap-3 text-sm">
+                      <div className="min-w-0">
+                        <span>{item.name} <span className="text-muted-foreground">×{item.quantity}</span></span>
+                        {item.notes?.trim() && (
+                          <p className="mt-0.5 text-xs italic text-muted-foreground">
+                            Note: {item.notes.trim()}
+                          </p>
+                        )}
+                      </div>
+                      <span className="font-medium shrink-0">{(Number(item.price) * item.quantity).toLocaleString()} AMD</span>
                     </div>
                   ))}
                 </div>
+                {order.notes?.trim() && (
+                  <p className="text-xs text-muted-foreground px-1">
+                    Order note: {order.notes.trim()}
+                  </p>
+                )}
 
                 {/* Status actions */}
                 {nextStatuses.length > 0 && (

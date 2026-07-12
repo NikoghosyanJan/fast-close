@@ -1,13 +1,21 @@
 'use client';
 
 import { useChat } from 'ai/react';
-import { useRef, useEffect, useState } from 'react';
-import { Send, Zap, Loader2 } from 'lucide-react';
+import { useRef, useEffect, useState, useCallback } from 'react';
+import { Send, Zap, Loader2, ShoppingBag } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import CartSheet from './CartSheet';
+import type { CartItem } from '@/lib/agent/types';
 
 interface Props {
   business: { id: string; name: string };
   table?: { id: string; name: string; number: number };
+}
+
+interface CartState {
+  items: CartItem[];
+  total: number;
+  itemCount: number;
 }
 
 function getOrCreateSessionId(businessId: string, tableId?: string): string {
@@ -27,6 +35,9 @@ export default function ChatInterface({ business, table }: Props) {
   const [sessionId] = useState(() =>
     typeof window !== 'undefined' ? getOrCreateSessionId(business.id, table?.id) : ''
   );
+  const [cartOpen, setCartOpen] = useState(false);
+  const [cart, setCart] = useState<CartState>({ items: [], total: 0, itemCount: 0 });
+  const [cartBusy, setCartBusy] = useState(false);
 
   const welcome = table
     ? `Welcome to **${business.name}**. You're seated at **${table.name}**. I'm your AI waiter — what would you like to order?`
@@ -49,6 +60,59 @@ export default function ChatInterface({ business, table }: Props) {
     ],
   });
 
+  const fetchCart = useCallback(async () => {
+    if (!sessionId) return;
+    const params = new URLSearchParams({
+      businessId: business.id,
+      sessionId,
+    });
+    if (table?.id) params.set('tableId', table.id);
+
+    try {
+      const res = await fetch(`/api/chat/cart?${params}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setCart({
+        items: Array.isArray(data.items) ? data.items : [],
+        total: Number(data.total) || 0,
+        itemCount: Number(data.itemCount) || 0,
+      });
+    } catch {
+      /* ignore transient fetch errors */
+    }
+  }, [business.id, sessionId, table?.id]);
+
+  const patchCart = useCallback(
+    async (productId: string, patch: { quantity?: number; notes?: string | null }) => {
+      if (!sessionId) return;
+      setCartBusy(true);
+      try {
+        const res = await fetch('/api/chat/cart', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            businessId: business.id,
+            sessionId,
+            ...(table ? { tableId: table.id } : {}),
+            productId,
+            ...patch,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCart({
+            items: Array.isArray(data.items) ? data.items : [],
+            total: Number(data.total) || 0,
+            itemCount: Number(data.itemCount) || 0,
+          });
+        }
+      } finally {
+        setCartBusy(false);
+      }
+    },
+    [business.id, sessionId, table]
+  );
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -56,6 +120,19 @@ export default function ChatInterface({ business, table }: Props) {
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    fetchCart();
+  }, [fetchCart]);
+
+  // Refresh cart after the agent finishes a turn (tools may have changed it)
+  useEffect(() => {
+    if (!isLoading) fetchCart();
+  }, [isLoading, fetchCart, messages.length]);
+
+  useEffect(() => {
+    if (cartOpen) fetchCart();
+  }, [cartOpen, fetchCart]);
 
   const formatTime = (date: Date) =>
     date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -81,6 +158,19 @@ export default function ChatInterface({ business, table }: Props) {
               {table.name}
             </span>
           )}
+          <button
+            type="button"
+            onClick={() => setCartOpen(true)}
+            aria-label={cart.itemCount > 0 ? `Open cart, ${cart.itemCount} items` : 'Open cart'}
+            className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/50 text-foreground transition hover:bg-muted"
+          >
+            <ShoppingBag className="h-4 w-4" />
+            {cart.itemCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-md bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                {cart.itemCount > 99 ? '99+' : cart.itemCount}
+              </span>
+            )}
+          </button>
         </div>
       </header>
 
@@ -148,7 +238,7 @@ export default function ChatInterface({ business, table }: Props) {
               ref={inputRef}
               value={input}
               onChange={handleInputChange}
-              placeholder={table ? 'Ask about the menu or place an order…' : 'Ask about the menu or place an order…'}
+              placeholder="Ask about the menu or place an order…"
               disabled={isLoading}
               className="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm outline-none placeholder:text-muted-foreground disabled:opacity-50"
             />
@@ -174,6 +264,17 @@ export default function ChatInterface({ business, table }: Props) {
           </p>
         </div>
       </div>
+
+      <CartSheet
+        open={cartOpen}
+        onClose={() => setCartOpen(false)}
+        items={cart.items}
+        total={cart.total}
+        busy={cartBusy}
+        onUpdateQuantity={(productId, quantity) => patchCart(productId, { quantity })}
+        onUpdateNotes={(productId, notes) => patchCart(productId, { notes })}
+        onRemove={productId => patchCart(productId, { quantity: 0 })}
+      />
     </div>
   );
 }

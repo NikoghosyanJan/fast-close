@@ -33,6 +33,7 @@ function validateCartItems(
       name: product.name,
       quantity: Math.max(1, Math.min(99, Math.round(item.quantity))),
       unitPrice: product.price != null ? Number(product.price) : item.unitPrice,
+      ...(item.notes?.trim() ? { notes: item.notes.trim().slice(0, 500) } : {}),
     });
   }
 

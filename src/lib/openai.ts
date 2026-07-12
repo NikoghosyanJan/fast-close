@@ -94,6 +94,8 @@ export interface OrderItem {
   name: string;
   quantity: number;
   price: number;
+  /** Per-item kitchen note e.g. "no onion" */
+  notes?: string;
 }
 
 export interface ExtractedOrder {
@@ -217,7 +219,14 @@ Reply in the SAME language as the customer's LAST message.
 - Armenian (script or translit: barev, inch, kam, uzum) → Armenian script
 - Russian (Cyrillic or translit: privet, skolko, zakaz) → Russian Cyrillic
 - English → English
-Use exact item names and prices from the menu block below.
+
+Menu items may be stored in Armenian (or another language). When the customer's language differs:
+- Translate BOTH the dish name AND the description into the customer's language so the reply is fully readable.
+- Do NOT mix scripts (e.g. never put Armenian letters inside a Russian or English sentence).
+- Do NOT letter-by-letter transliterate Armenian into Cyrillic/Latin — translate meaning (e.g. Դասական → Classic / Классический, not "Dasakan").
+- Well-known dish names: use the standard name in the customer's language (Տիրամիսու → Тирамису / Tiramisu).
+- Keep prices and product_ids exact from the menu block. Never invent items or change prices.
+- Tools/cart still use the original product_id from the menu; only the customer-facing text is translated.
 
 ===== ANTI-HALLUCINATION =====
 ${antiHallucination}
@@ -234,6 +243,7 @@ ${confirmStep}
 ===== RULES =====
 - Show prices in AMD clearly.
 - Short messages — 2–4 sentences usually enough.
+- When the customer mentions a prep preference (no onion, extra spicy, etc.), save it with add_to_cart/update_cart_item notes so the kitchen sees it.
 - Redirect off-topic questions gently back to ordering.
 - PROSE ONLY in replies: no markdown headings (# ## ###), no markdown tables, no code fences. Bold with **like this** is OK. Use plain line breaks for lists.
 
@@ -273,7 +283,10 @@ export async function sendOrderToTelegram(
   orderId: string
 ): Promise<void> {
   const itemLines = order.items
-    .map(i => `  • ${i.name} x${i.quantity} — ${Number(i.price).toLocaleString()} AMD`)
+    .map(i => {
+      const base = `  • ${i.name} x${i.quantity} — ${Number(i.price).toLocaleString()} AMD`;
+      return i.notes?.trim() ? `${base}\n    📝 ${i.notes.trim()}` : base;
+    })
     .join('\n');
 
   const isDineIn = order.orderType === 'dine_in';

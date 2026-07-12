@@ -44,17 +44,36 @@ function orderTypeToDb(t: OrderMode): DbOrderType {
   return t === 'dine_in' ? 'DINE_IN' : 'DELIVERY';
 }
 
+function normalizeItemNotes(notes: unknown): string | undefined {
+  if (typeof notes !== 'string') return undefined;
+  const trimmed = notes.trim().slice(0, 500);
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 function parseCart(raw: unknown): CartItem[] {
   if (!Array.isArray(raw)) return [];
-  return raw.filter(
-    (item): item is CartItem =>
-      typeof item === 'object' &&
-      item !== null &&
-      typeof (item as CartItem).productId === 'string' &&
-      typeof (item as CartItem).name === 'string' &&
-      typeof (item as CartItem).quantity === 'number' &&
-      typeof (item as CartItem).unitPrice === 'number'
-  );
+  const items: CartItem[] = [];
+  for (const item of raw) {
+    if (
+      typeof item !== 'object' ||
+      item === null ||
+      typeof (item as CartItem).productId !== 'string' ||
+      typeof (item as CartItem).name !== 'string' ||
+      typeof (item as CartItem).quantity !== 'number' ||
+      typeof (item as CartItem).unitPrice !== 'number'
+    ) {
+      continue;
+    }
+    const notes = normalizeItemNotes((item as CartItem).notes);
+    items.push({
+      productId: (item as CartItem).productId,
+      name: (item as CartItem).name,
+      quantity: (item as CartItem).quantity,
+      unitPrice: (item as CartItem).unitPrice,
+      ...(notes ? { notes } : {}),
+    });
+  }
+  return items;
 }
 
 function parseMessages(raw: unknown): { role: 'user' | 'assistant'; content: string }[] {
@@ -236,8 +255,9 @@ export function formatSessionContext(session: SessionSnapshot): string {
   } else {
     lines.push('Cart:');
     session.cart.forEach((item, i) => {
+      const note = item.notes ? ` | note: ${item.notes}` : '';
       lines.push(
-        `  ${i + 1}. ${item.name} x${item.quantity} — ${item.unitPrice.toLocaleString()} AMD each (productId: ${item.productId})`
+        `  ${i + 1}. ${item.name} x${item.quantity} — ${item.unitPrice.toLocaleString()} AMD each (productId: ${item.productId})${note}`
       );
     });
     lines.push(`Cart total: ${cartTotal(session.cart).toLocaleString()} AMD`);
@@ -256,8 +276,17 @@ export function formatSessionContext(session: SessionSnapshot): string {
   return lines.join('\n');
 }
 
+function cartItemsToOrderItems(cart: CartItem[]) {
+  return cart.map(item => ({
+    name: item.name,
+    quantity: item.quantity,
+    price: item.unitPrice,
+    ...(item.notes ? { notes: item.notes } : {}),
+  }));
+}
+
 export function orderFromSession(session: SessionSnapshot): {
-  items: { name: string; quantity: number; price: number }[];
+  items: { name: string; quantity: number; price: number; notes?: string }[];
   totalPrice: number;
   customerPhone: string;
   deliveryAddress: string;
@@ -274,11 +303,7 @@ export function orderFromSession(session: SessionSnapshot): {
       session.tableName ??
       (session.tableNumber != null ? `Table ${session.tableNumber}` : 'Table');
     return {
-      items: session.cart.map(item => ({
-        name: item.name,
-        quantity: item.quantity,
-        price: item.unitPrice,
-      })),
+      items: cartItemsToOrderItems(session.cart),
       totalPrice: cartTotal(session.cart),
       customerPhone: '',
       deliveryAddress: tableLabel,
@@ -294,11 +319,7 @@ export function orderFromSession(session: SessionSnapshot): {
   }
 
   return {
-    items: session.cart.map(item => ({
-      name: item.name,
-      quantity: item.quantity,
-      price: item.unitPrice,
-    })),
+    items: cartItemsToOrderItems(session.cart),
     totalPrice: cartTotal(session.cart),
     customerPhone: session.customerPhone,
     deliveryAddress: session.deliveryAddress,
@@ -308,5 +329,7 @@ export function orderFromSession(session: SessionSnapshot): {
     tableNumber: null,
   };
 }
+
+export { normalizeItemNotes };
 
 export { orderTypeToDb };

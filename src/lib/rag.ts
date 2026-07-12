@@ -42,20 +42,25 @@ export interface RetrievalDebug {
 
 export function formatProductContext(products: MatchedProduct[]): string {
   if (!products.length) return '';
-  return products
-    .map((p, i) => {
-      const price = p.price != null
-        ? Number(p.price).toLocaleString()
-        : 'Price on request';
-      const meta = p.metadata && Object.keys(p.metadata).length
-        ? '\n  ' + Object.entries(p.metadata).map(([k, v]) => `${k}: ${v}`).join(', ')
-        : '';
-      const desc = p.description ? `\n  ${p.description}` : '';
-      const cat = p.category ? `\n  Category: ${p.category}` : '';
-      const als = p.aliases.length ? `\n  Aliases: ${p.aliases.join(', ')}` : '';
-      return `[${i + 1}] id:${p.id} | ${p.name}\n  Price: ${price} AMD${cat}${als}${desc}${meta}`;
-    })
-    .join('\n\n');
+  const header =
+    '(Names/descriptions below are stored as entered by the restaurant — translate them into the customer\'s language in your reply; keep prices and ids exact.)\n\n';
+  return (
+    header +
+    products
+      .map((p, i) => {
+        const price = p.price != null
+          ? Number(p.price).toLocaleString()
+          : 'Price on request';
+        const meta = p.metadata && Object.keys(p.metadata).length
+          ? '\n  ' + Object.entries(p.metadata).map(([k, v]) => `${k}: ${v}`).join(', ')
+          : '';
+        const desc = p.description ? `\n  ${p.description}` : '';
+        const cat = p.category ? `\n  Category: ${p.category}` : '';
+        const als = p.aliases.length ? `\n  Aliases: ${p.aliases.join(', ')}` : '';
+        return `[${i + 1}] id:${p.id} | ${p.name}\n  Price: ${price} AMD${cat}${als}${desc}${meta}`;
+      })
+      .join('\n\n')
+  );
 }
 
 function mapProductRow(p: {

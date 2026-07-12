@@ -7,6 +7,7 @@ import {
   cartTotal,
   orderFromSession,
   isDineIn,
+  normalizeItemNotes,
 } from './session';
 import type { CartItem, ConversationPhase } from './types';
 import type { AgentToolName } from './tools';
@@ -96,6 +97,7 @@ export async function executeAgentTool(
     case 'add_to_cart': {
       const productId = String(args.product_id ?? '');
       const quantity = Math.max(1, Math.min(99, Number(args.quantity ?? 1)));
+      const notes = args.notes !== undefined ? normalizeItemNotes(args.notes) : undefined;
       const product = await getProductForBusiness(businessId, productId);
 
       if (!product) {
@@ -111,13 +113,26 @@ export async function executeAgentTool(
       const idx = cart.findIndex(i => i.productId === productId);
 
       if (idx >= 0) {
-        cart[idx] = { ...cart[idx], quantity: cart[idx].quantity + quantity };
+        const existing = cart[idx];
+        let merged: CartItem = {
+          ...existing,
+          quantity: existing.quantity + quantity,
+        };
+        if (args.notes !== undefined) {
+          if (notes) merged = { ...merged, notes };
+          else {
+            const { notes: _cleared, ...rest } = merged;
+            merged = rest;
+          }
+        }
+        cart[idx] = merged;
       } else {
         cart.push({
           productId: product.id,
           name: product.name,
           quantity,
           unitPrice,
+          ...(notes ? { notes } : {}),
         });
       }
 
@@ -127,7 +142,11 @@ export async function executeAgentTool(
       });
 
       return {
-        output: { success: true, message: `Added ${product.name} x${quantity}`, cart: cartPayload(session) },
+        output: {
+          success: true,
+          message: `Added ${product.name} x${quantity}${notes ? ` (note: ${notes})` : ''}`,
+          cart: cartPayload(session),
+        },
         session,
         orderReady: null,
       };
@@ -135,7 +154,8 @@ export async function executeAgentTool(
 
     case 'update_cart_item': {
       const productId = String(args.product_id ?? '');
-      const quantity = Math.max(0, Math.min(99, Number(args.quantity ?? 0)));
+      const hasQuantity = args.quantity !== undefined && args.quantity !== null && args.quantity !== '';
+      const hasNotes = args.notes !== undefined;
       let cart = [...session.cart];
       const idx = cart.findIndex(i => i.productId === productId);
 
@@ -147,10 +167,35 @@ export async function executeAgentTool(
         };
       }
 
-      if (quantity === 0) {
-        cart = cart.filter(i => i.productId !== productId);
+      if (!hasQuantity && !hasNotes) {
+        return {
+          output: { success: false, error: 'Provide quantity and/or notes to update' },
+          session,
+          orderReady: null,
+        };
+      }
+
+      let next = { ...cart[idx] };
+
+      if (hasNotes) {
+        const notes = normalizeItemNotes(args.notes);
+        if (notes) next = { ...next, notes };
+        else {
+          const { notes: _removed, ...rest } = next;
+          next = rest;
+        }
+      }
+
+      if (hasQuantity) {
+        const quantity = Math.max(0, Math.min(99, Number(args.quantity ?? 0)));
+        if (quantity === 0) {
+          cart = cart.filter(i => i.productId !== productId);
+        } else {
+          next = { ...next, quantity };
+          cart[idx] = next;
+        }
       } else {
-        cart[idx] = { ...cart[idx], quantity };
+        cart[idx] = next;
       }
 
       session = await updateSession(session.id, businessId, {
